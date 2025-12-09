@@ -180,49 +180,50 @@ const IceCreamTracker = () => {
   };
 
   const deleteEntry = async (id) => {
-    if (!window.confirm('Are you sure you want to delete this entry?')) return;
+  if (!window.confirm('Are you sure you want to delete this entry?')) return;
+  
+  setIsLoading(true);
+  try {
+    // Use query parameter instead of dynamic route
+    const response = await fetch(`/api/entries?id=${id}`, {
+      method: 'DELETE',
+    });
     
-    setIsLoading(true);
-    try {
-      const response = await fetch(`/api/entries/${id}`, {
-        method: 'DELETE',
-      });
-      
-      if (!response.ok) {
-        throw new Error(`HTTP error! status: ${response.status}`);
-      }
-      
-      const updatedEntries = entries.filter(e => e.id !== id);
-      setEntries(updatedEntries);
-      
-      // Update local backup
-      try {
-        if (window.storage) {
-          await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
-        }
-      } catch (storageError) {
-        console.log('Could not update local storage:', storageError);
-      }
-      
-    } catch (error) {
-      console.error('Error deleting entry:', error);
-      setError('Failed to delete from database. Deleting locally.');
-      
-      // Fallback to local delete
-      const updatedEntries = entries.filter(e => e.id !== id);
-      setEntries(updatedEntries);
-      
-      try {
-        if (window.storage) {
-          await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
-        }
-      } catch (storageError) {
-        console.log('Could not update local storage:', storageError);
-      }
-    } finally {
-      setIsLoading(false);
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
     }
-  };
+    
+    const updatedEntries = entries.filter(e => e.id !== id);
+    setEntries(updatedEntries);
+    
+    // Update local backup
+    try {
+      if (window.storage) {
+        await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+      }
+    } catch (storageError) {
+      console.log('Could not update local storage:', storageError);
+    }
+    
+  } catch (error) {
+    console.error('Error deleting entry:', error);
+    setError('Failed to delete from database. Deleting locally.');
+    
+    // Fallback to local delete
+    const updatedEntries = entries.filter(e => e.id !== id);
+    setEntries(updatedEntries);
+    
+    try {
+      if (window.storage) {
+        await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+      }
+    } catch (storageError) {
+      console.log('Could not update local storage:', storageError);
+    }
+  } finally {
+    setIsLoading(false);
+  }
+};
 
   const filteredEntries = entries.filter(e => {
     if (filter === 'all') return true;
