@@ -25,15 +25,22 @@ const IceCreamTracker = () => {
     setIsLoading(true);
     setError('');
     try {
-      const response = await fetch('http://localhost:4000/entries');
+      const response = await fetch('/api/entries');
       if (!response.ok) {
         throw new Error(`HTTP error! status: ${response.status}`);
       }
       const data = await response.json();
       setEntries(data);
     } catch (error) {
-      console.error('Error loading entries from API:', error);
-      setError('Could not connect to database. Using local storage.');
+      console.error('Error loading entries:', error);
+      setError('Could not connect to database. Using mock data.');
+      
+      // Fallback to mock data
+      const mockData = [
+        { id: 1, flavor: "Chocolate", shop: "Joelato", person: "Demo", date: "2024-01-15", timestamp: new Date().toISOString(), notes: "Sample entry" },
+        { id: 2, flavor: "Vanilla", shop: "Mary's Milk Bar", person: "Demo", date: "2024-01-14", timestamp: new Date().toISOString(), notes: "Another sample" }
+      ];
+      setEntries(mockData);
       
       // Fallback to localStorage
       try {
@@ -89,26 +96,24 @@ const IceCreamTracker = () => {
     setIsLoading(true);
     setError('');
     
-    // Create one entry per flavour - use 'flavor' for database
-    const entriesToSave = nonEmptyFlavours.map(flavour => ({
-      shop: formData.shop,
-      flavor: flavour.trim(), // ← DATABASE EXPECTS 'flavor' NOT 'flavour'
-      date: formData.date,
-      notes: formData.notes,
-      person: formData.person,
-      timestamp: new Date().toISOString()
-    }));
-    
     try {
-      // Save each flavour entry
+      // Save each flavour to PostgreSQL via Vercel API
       const savedEntries = [];
-      for (const entry of entriesToSave) {
-        const response = await fetch('http://localhost:4000/entries', {
+      for (const flavour of nonEmptyFlavours) {
+        const entryToSave = {
+          shop: formData.shop,
+          flavor: flavour.trim(), // Note: API expects 'flavor' (American spelling)
+          date: formData.date,
+          notes: formData.notes,
+          person: formData.person
+        };
+        
+        const response = await fetch('/api/entries', {
           method: 'POST',
           headers: {
             'Content-Type': 'application/json',
           },
-          body: JSON.stringify(entry),
+          body: JSON.stringify(entryToSave),
         });
         
         if (!response.ok) {
@@ -143,13 +148,18 @@ const IceCreamTracker = () => {
       setShowForm(false);
       
     } catch (error) {
-      console.error('Error saving entries to API:', error);
+      console.error('Error saving entries:', error);
       setError('Failed to save to database. Saving locally.');
       
       // Fallback to local storage
-      const localEntries = entriesToSave.map((entry, index) => ({
-        ...entry,
-        id: Date.now() + index
+      const localEntries = nonEmptyFlavours.map((flavour, index) => ({
+        shop: formData.shop,
+        flavor: flavour.trim(),
+        date: formData.date,
+        notes: formData.notes,
+        person: formData.person,
+        id: Date.now() + index,
+        timestamp: new Date().toISOString()
       }));
       
       const updatedEntries = [...localEntries, ...entries];
@@ -174,7 +184,7 @@ const IceCreamTracker = () => {
     
     setIsLoading(true);
     try {
-      const response = await fetch(`http://localhost:4000/entries/${id}`, {
+      const response = await fetch(`/api/entries/${id}`, {
         method: 'DELETE',
       });
       
@@ -195,7 +205,7 @@ const IceCreamTracker = () => {
       }
       
     } catch (error) {
-      console.error('Error deleting entry from API:', error);
+      console.error('Error deleting entry:', error);
       setError('Failed to delete from database. Deleting locally.');
       
       // Fallback to local delete
@@ -263,7 +273,6 @@ const IceCreamTracker = () => {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 16px;
           padding: 2px 4px;
-          width: 100%;
         }
         .dos-input:focus {
           border-color: #00ff00;
@@ -280,7 +289,6 @@ const IceCreamTracker = () => {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 16px;
           padding: 2px 4px;
-          width: 100%;
         }
         .dos-textarea {
           background: black;
@@ -292,7 +300,6 @@ const IceCreamTracker = () => {
           padding: 4px;
           resize: vertical;
           min-height: 60px;
-          width: 100%;
         }
         .blink {
           animation: blink 1s infinite;
@@ -301,28 +308,36 @@ const IceCreamTracker = () => {
           0%, 49% { opacity: 1; }
           50%, 100% { opacity: 0; }
         }
+        .scanline {
+          position: relative;
+          overflow: hidden;
+        }
+        .scanline::after {
+          content: '';
+          position: absolute;
+          top: 0;
+          left: 0;
+          right: 0;
+          height: 2px;
+          background: linear-gradient(to bottom, transparent, rgba(0, 255, 0, 0.2), transparent);
+          animation: scan 3s linear infinite;
+        }
+        @keyframes scan {
+          0% { transform: translateY(-100%); }
+          100% { transform: translateY(100vh); }
+        }
         .flavour-tag {
           display: inline-block;
           background: #004400;
           color: #00ff00;
-          padding: 4px 12px;
-          margin: 3px;
-          border-radius: 4px;
+          padding: 2px 8px;
+          margin: 2px;
+          border-radius: 3px;
           border: 1px solid #008800;
-          font-size: 14px;
-        }
-        .flavour-input-container {
-          display: flex;
-          align-items: center;
-          gap: 8px;
-          margin-bottom: 8px;
-        }
-        .flavour-input-container input {
-          flex: 1;
         }
       `}</style>
 
-      <div className="p-4">
+      <div className="p-4 scanline">
         {/* Status Bar */}
         {error && (
           <div className="mb-3 p-2 bg-red-900 text-red-300 border border-red-700">
@@ -348,7 +363,7 @@ const IceCreamTracker = () => {
             ╔════════════════════════════════════════════════════════════════════════════╗
           </div>
           <div className="text-yellow-400 flex justify-between">
-            <span>║  GELATO BASE v2.0</span>
+            <span>║  GELATO BASE v2.0 (Vercel PostgreSQL)</span>
             <span> {formatTime(currentTime)} ║</span>
           </div>
           <div className="text-yellow-400">
@@ -370,6 +385,9 @@ const IceCreamTracker = () => {
             </div>
             <div>
               <span className="text-cyan-400">FILTER:</span> {filter.toUpperCase()}
+            </div>
+            <div>
+              <span className="text-cyan-400">DB:</span> PostgreSQL
             </div>
           </div>
         </div>
@@ -425,94 +443,90 @@ const IceCreamTracker = () => {
               ═══ ADD NEW FLAVOURS ═══
             </div>
             
-            <div className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <div className="text-green-400 mb-1">SHOP:</div>
-                  <select
-                    value={formData.shop}
-                    onChange={(e) => setFormData({...formData, shop: e.target.value})}
-                    className="dos-select"
-                    disabled={isLoading}
-                  >
-                    <option value="Joelato">JOELATO</option>
-                    <option value="Mary's Milk Bar">MARYS MILK BAR</option>
-                    <option value="Other">OTHER</option>
-                  </select>
-                </div>
-
-                <div>
-                  <div className="text-green-400 mb-1">DATE:</div>
-                  <input
-                    type="date"
-                    value={formData.date}
-                    onChange={(e) => setFormData({...formData, date: e.target.value})}
-                    className="dos-input"
-                    disabled={isLoading}
-                  />
-                </div>
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">SHOP:</span>
+                <select
+                  value={formData.shop}
+                  onChange={(e) => setFormData({...formData, shop: e.target.value})}
+                  className="dos-select flex-1"
+                  disabled={isLoading}
+                >
+                  <option value="Joelato">JOELATO</option>
+                  <option value="Mary's Milk Bar">MARYS MILK BAR</option>
+                  <option value="Other">OTHER</option>
+                </select>
               </div>
 
-              <div>
-                <div className="text-green-400 mb-1">YOUR NAME:</div>
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">NAME:</span>
                 <input
                   type="text"
                   value={formData.person}
                   onChange={(e) => setFormData({...formData, person: e.target.value})}
+                  className="dos-input flex-1"
+                  placeholder="YOUR NAME"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">DATE:</span>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
                   className="dos-input"
-                  placeholder="Enter your name"
                   disabled={isLoading}
                 />
               </div>
 
               {/* Multiple Flavours Section */}
-              <div>
-                <div className="flex justify-between items-center mb-2">
-                  <div className="text-green-400">FLAVOURS:</div>
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-green-400">FLAVOURS:</span>
                   <button
                     type="button"
                     onClick={addFlavourField}
-                    className="text-cyan-400 hover:text-white px-3 py-1 border border-cyan-700"
+                    className="text-cyan-400 hover:text-white px-2 py-1 border border-cyan-700"
                     disabled={isLoading}
                   >
-                    [+ ADD ANOTHER]
+                    [+ ADD FLAVOUR]
                   </button>
                 </div>
                 
-                <div className="space-y-2">
-                  {formData.flavours.map((flavour, index) => (
-                    <div key={index} className="flavour-input-container">
-                      <div className="text-cyan-400 w-6">{index + 1}.</div>
-                      <input
-                        type="text"
-                        value={flavour}
-                        onChange={(e) => updateFlavour(index, e.target.value)}
-                        className="dos-input"
-                        placeholder={`Enter flavour ${index + 1}`}
+                {formData.flavours.map((flavour, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="text-cyan-400 w-8">{index + 1}.</span>
+                    <input
+                      type="text"
+                      value={flavour}
+                      onChange={(e) => updateFlavour(index, e.target.value)}
+                      className="dos-input flex-1"
+                      placeholder={`FLAVOUR ${index + 1}`}
+                      disabled={isLoading}
+                    />
+                    {formData.flavours.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeFlavourField(index)}
+                        className="text-red-400 hover:text-red-300 px-2 border border-red-700"
                         disabled={isLoading}
-                      />
-                      {formData.flavours.length > 1 && (
-                        <button
-                          type="button"
-                          onClick={() => removeFlavourField(index)}
-                          className="text-red-400 hover:text-red-300 px-2 py-1 border border-red-700"
-                          disabled={isLoading}
-                        >
-                          REMOVE
-                        </button>
-                      )}
-                    </div>
-                  ))}
-                </div>
+                      >
+                        [X]
+                      </button>
+                    )}
+                  </div>
+                ))}
               </div>
 
-              <div>
-                <div className="text-green-400 mb-1">NOTES (OPTIONAL):</div>
+              <div className="flex gap-2">
+                <span className="text-green-400 w-32 pt-2">NOTES:</span>
                 <textarea
                   value={formData.notes}
                   onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="dos-textarea"
-                  placeholder="Any notes about this tasting..."
+                  className="dos-textarea flex-1"
+                  placeholder="OPTIONAL NOTES"
                   disabled={isLoading}
                 />
               </div>
@@ -520,22 +534,13 @@ const IceCreamTracker = () => {
               <div className="flex gap-4 mt-4">
                 <button
                   onClick={handleSubmit}
-                  className="px-6 py-2 text-black bg-green-400 hover:bg-green-500 border border-green-700 disabled:opacity-50 disabled:cursor-not-allowed flex-1"
+                  className="px-6 py-2 text-black bg-green-400 hover:bg-green-500 border border-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
                   disabled={isLoading || formData.flavours.filter(f => f.trim() !== '').length === 0 || !formData.person}
                 >
-                  {isLoading ? '[S]AVING...' : '[S]AVE ALL FLAVOURS'}
+                  {isLoading ? '[S]AVING...' : '[S]AVE FLAVOURS'}
                 </button>
                 <button
-                  onClick={() => {
-                    setFormData({
-                      shop: 'Joelato',
-                      flavours: [''],
-                      date: new Date().toISOString().split('T')[0],
-                      notes: '',
-                      person: ''
-                    });
-                    setShowForm(false);
-                  }}
+                  onClick={() => setShowForm(false)}
                   className="px-6 py-2 text-black bg-red-400 hover:bg-red-500 border border-red-700 disabled:opacity-50"
                   disabled={isLoading}
                 >
@@ -543,14 +548,6 @@ const IceCreamTracker = () => {
                 </button>
               </div>
             </div>
-          </div>
-        )}
-
-        {/* Debug Info - Remove after testing */}
-        {process.env.NODE_ENV === 'development' && (
-          <div className="mb-4 p-2 bg-gray-800 text-xs text-gray-400">
-            <div>DEBUG: Form has {formData.flavours.length} flavour fields</div>
-            <div>Non-empty: {formData.flavours.filter(f => f.trim() !== '').length}</div>
           </div>
         )}
 
@@ -576,7 +573,7 @@ const IceCreamTracker = () => {
             <div className="space-y-6">
               {sortedDates.map(date => (
                 <div key={date} className="border border-cyan-400 p-3 bg-gray-900">
-                  <div className="text-yellow-400 mb-3 text-lg">
+                  <div className="text-yellow-400 mb-3">
                     {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
                   </div>
                   
@@ -588,17 +585,17 @@ const IceCreamTracker = () => {
                     return (
                       <div key={shop} className="mb-4 ml-4">
                         <div className="text-green-400 mb-2">
-                         <span className="text-yellow-400 text-lg">{shop}</span>
-                         <span className="text-cyan-400 ml-3">
-                          •tasted by {people.join(', ')}
-                         </span>
-                      </div>
+                          <span className="text-yellow-400 mr-2">{shop}</span>
+                          <span className="text-cyan-400">
+                            • tasted by {people.join(', ')}
+                          </span>
+                        </div>
                         
                         <div className="flex flex-wrap gap-2 mb-3">
                           {shopEntries.map(entry => (
                             <div key={entry.id} className="relative group">
                               <div className="flavour-tag">
-                                {entry.flavor} {/* Database field is 'flavor' */}
+                                {entry.flavor} {/* API returns 'flavor' not 'flavour' */}
                                 <button
                                   onClick={() => deleteEntry(entry.id)}
                                   className="ml-2 text-red-400 hover:text-red-300 text-xs"
@@ -612,7 +609,7 @@ const IceCreamTracker = () => {
                         </div>
                         
                         {shopEntries[0]?.notes && (
-                          <div className="text-cyan-400 mt-2 p-2 bg-gray-800 rounded">
+                          <div className="text-cyan-400 mt-2">
                             <span className="text-green-400">Notes:</span> {shopEntries[0].notes}
                           </div>
                         )}
@@ -647,7 +644,7 @@ const IceCreamTracker = () => {
               {isLoading ? (
                 <span className="text-yellow-400">Syncing...</span>
               ) : (
-                <span className="text-green-400">Online</span>
+                <span className="text-green-400">PostgreSQL Active</span>
               )}
             </div>
           </div>
