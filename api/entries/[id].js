@@ -1,4 +1,4 @@
-import { db } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   const { id } = req.query;
@@ -8,17 +8,15 @@ export default async function handler(req, res) {
   }
 
   try {
-    const client = await db.connect();
+    const sql = neon(process.env.POSTGRES_URL);
     
-    const result = await client.sql`
+    const result = await sql`
       DELETE FROM entries 
       WHERE id = ${parseInt(id)}
       RETURNING id
     `;
     
-    client.release();
-    
-    if (result.rowCount === 0) {
+    if (result.length === 0) {
       return res.status(404).json({ error: 'Entry not found' });
     }
     

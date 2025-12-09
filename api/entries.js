@@ -1,4 +1,4 @@
-import { db } from '@vercel/postgres';
+import { neon } from '@neondatabase/serverless';
 
 export default async function handler(req, res) {
   if (req.method !== 'GET') {
@@ -6,10 +6,10 @@ export default async function handler(req, res) {
   }
 
   try {
-    const client = await db.connect();
+    const sql = neon(process.env.POSTGRES_URL);
     
     // Create table if it doesn't exist
-    await client.sql`
+    await sql`
       CREATE TABLE IF NOT EXISTS entries (
         id SERIAL PRIMARY KEY,
         shop TEXT NOT NULL,
@@ -22,15 +22,14 @@ export default async function handler(req, res) {
     `;
     
     // Get all entries
-    const result = await client.sql`
+    const result = await sql`
       SELECT id, shop, flavor, date, notes, person, 
              TO_CHAR(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as timestamp
       FROM entries 
       ORDER BY timestamp DESC
     `;
     
-    client.release();
-    return res.status(200).json(result.rows);
+    return res.status(200).json(result);
   } catch (error) {
     console.error('Error fetching entries:', error);
     return res.status(500).json({ error: error.message });
