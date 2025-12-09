@@ -1,0 +1,33 @@
+{
+  "files": {
+    "main.css": "/static/css/main.32272690.css",
+    "main.js": "/static/js/main.b0e702f6.js",
+    "static/media/ibm-plex-mono-latin-500-normal.woff2": "/static/media/ibm-plex-mono-latin-500-normal.a1fc5384545ba0657d83.woff2",
+    "static/media/ibm-plex-mono-latin-400-normal.woff2": "/static/media/ibm-plex-mono-latin-400-normal.2b13cc93b07c41b27134.woff2",
+    "static/media/ibm-plex-mono-latin-ext-500-normal.woff2": "/static/media/ibm-plex-mono-latin-ext-500-normal.c28c19b51fcc5afd6835.woff2",
+    "static/media/ibm-plex-mono-latin-ext-400-normal.woff2": "/static/media/ibm-plex-mono-latin-ext-400-normal.081b2e53053c361ddb54.woff2",
+    "static/media/ibm-plex-mono-latin-500-normal.woff": "/static/media/ibm-plex-mono-latin-500-normal.89a2903adc59285a5efa.woff",
+    "static/media/ibm-plex-mono-latin-400-normal.woff": "/static/media/ibm-plex-mono-latin-400-normal.12ede62e388083e7c01c.woff",
+    "static/media/ibm-plex-mono-latin-ext-400-normal.woff": "/static/media/ibm-plex-mono-latin-ext-400-normal.52bdf7642f685aaccf13.woff",
+    "static/media/ibm-plex-mono-latin-ext-500-normal.woff": "/static/media/ibm-plex-mono-latin-ext-500-normal.0324453e532da2451cdd.woff",
+    "static/media/ibm-plex-mono-cyrillic-500-normal.woff2": "/static/media/ibm-plex-mono-cyrillic-500-normal.93f9e00744ba26615214.woff2",
+    "static/media/ibm-plex-mono-cyrillic-400-normal.woff2": "/static/media/ibm-plex-mono-cyrillic-400-normal.c6f862a99064981cc8ee.woff2",
+    "static/media/ibm-plex-mono-cyrillic-500-normal.woff": "/static/media/ibm-plex-mono-cyrillic-500-normal.15083deeb53439b48cb0.woff",
+    "static/media/ibm-plex-mono-cyrillic-400-normal.woff": "/static/media/ibm-plex-mono-cyrillic-400-normal.c45eb9547383e10d0f20.woff",
+    "static/media/ibm-plex-mono-cyrillic-ext-500-normal.woff2": "/static/media/ibm-plex-mono-cyrillic-ext-500-normal.0cef616364a9e45506c9.woff2",
+    "static/media/ibm-plex-mono-cyrillic-ext-400-normal.woff2": "/static/media/ibm-plex-mono-cyrillic-ext-400-normal.c5a38b926939e1f1ca99.woff2",
+    "static/media/ibm-plex-mono-vietnamese-500-normal.woff2": "/static/media/ibm-plex-mono-vietnamese-500-normal.acbf296481a133b31c7a.woff2",
+    "static/media/ibm-plex-mono-vietnamese-400-normal.woff2": "/static/media/ibm-plex-mono-vietnamese-400-normal.fa0747293826f3ba17f2.woff2",
+    "static/media/ibm-plex-mono-cyrillic-ext-400-normal.woff": "/static/media/ibm-plex-mono-cyrillic-ext-400-normal.cd5f0922a60470e1bde4.woff",
+    "static/media/ibm-plex-mono-cyrillic-ext-500-normal.woff": "/static/media/ibm-plex-mono-cyrillic-ext-500-normal.32dc85f4f2d15c29e3c5.woff",
+    "static/media/ibm-plex-mono-vietnamese-400-normal.woff": "/static/media/ibm-plex-mono-vietnamese-400-normal.d4e725bc424dbf53dc36.woff",
+    "static/media/ibm-plex-mono-vietnamese-500-normal.woff": "/static/media/ibm-plex-mono-vietnamese-500-normal.6412cb41302803180f86.woff",
+    "index.html": "/index.html",
+    "main.32272690.css.map": "/static/css/main.32272690.css.map",
+    "main.b0e702f6.js.map": "/static/js/main.b0e702f6.js.map"
+  },
+  "entrypoints": [
+    "static/css/main.32272690.css",
+    "static/js/main.b0e702f6.js"
+  ]
+}
