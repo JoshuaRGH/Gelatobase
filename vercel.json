@@ -1,6 +1,6 @@
 ﻿{
   "buildCommand": "npm run build",
   "outputDirectory": "build",
-  "installCommand": "rm -rf node_modules && npm cache clean --force && npm install --no-audit --legacy-peer-deps",
+  "installCommand": "npm install --legacy-peer-deps",
   "framework": "create-react-app"
 }
