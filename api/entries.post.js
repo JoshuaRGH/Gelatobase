@@ -7,20 +7,20 @@ export default async function handler(req, res) {
 
   try {
     const { shop, flavor, date, notes, person } = req.body;
-    
+
     if (!shop || !flavor || !date || !person) {
       return res.status(400).json({ error: 'Missing required fields' });
     }
 
     const sql = neon(process.env.POSTGRES_URL);
-    
+
     const result = await sql`
       INSERT INTO entries (shop, flavor, date, notes, person)
-      VALUES (${shop}, ${flavor}, ${date}, ${notes || ''}, ${person})
+      VALUES (${shop}, ${flavor.trim()}, ${date}, ${notes || ''}, ${person})
       RETURNING id, shop, flavor, date, notes, person,
                 TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as timestamp
     `;
-    
+
     return res.status(201).json(result[0]);
   } catch (error) {
     console.error('Error creating entry:', error);
