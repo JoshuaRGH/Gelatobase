@@ -7,7 +7,7 @@ export default async function handler(req, res) {
   if (req.method === 'GET') {
     try {
       const result = await sql`
-        SELECT id, shop, flavor, date, notes, person,
+        SELECT id, shop, flavour, date, notes, person,
                TO_CHAR(timestamp, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as timestamp
         FROM entries
         ORDER BY timestamp DESC
@@ -22,16 +22,16 @@ export default async function handler(req, res) {
   // POST new entry
   if (req.method === 'POST') {
     try {
-      const { shop, flavor, date, notes, person } = req.body;
+      const { shop, flavour, date, notes, person } = req.body;
       
-      if (!shop || !flavor || !date || !person) {
+      if (!shop || !flavour || !date || !person) {
         return res.status(400).json({ error: 'Missing required fields' });
       }
       
       const result = await sql`
-        INSERT INTO entries (shop, flavor, date, notes, person)
-        VALUES (${shop}, ${flavor.trim()}, ${date}, ${notes || ''}, ${person})
-        RETURNING id, shop, flavor, date, notes, person,
+        INSERT INTO entries (shop, flavour, date, notes, person)
+        VALUES (${shop}, ${flavour.trim()}, ${date}, ${notes || ''}, ${person})
+        RETURNING id, shop, flavour, date, notes, person,
                   TO_CHAR(CURRENT_TIMESTAMP, 'YYYY-MM-DD"T"HH24:MI:SS.MS"Z"') as timestamp
       `;
       
