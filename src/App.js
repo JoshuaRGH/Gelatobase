@@ -14,6 +14,9 @@ const IceCreamTracker = () => {
   const [currentTime, setCurrentTime] = useState(new Date());
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState('');
+  const [isAdmin, setIsAdmin] = useState(false);
+  const [showAdminPrompt, setShowAdminPrompt] = useState(false);
+  const [adminPassword, setAdminPassword] = useState('');
 
   useEffect(() => {
     loadEntries();
@@ -35,14 +38,12 @@ const IceCreamTracker = () => {
       console.error('Error loading entries:', error);
       setError('Could not connect to database. Using mock data.');
       
-      // Fallback to mock data
       const mockData = [
         { id: 1, flavor: "Chocolate", shop: "Joelato", person: "Demo", date: "2024-01-15", timestamp: new Date().toISOString(), notes: "Sample entry" },
         { id: 2, flavor: "Vanilla", shop: "Mary's Milk Bar", person: "Demo", date: "2024-01-14", timestamp: new Date().toISOString(), notes: "Another sample" }
       ];
       setEntries(mockData);
       
-      // Fallback to localStorage
       try {
         const result = await window.storage?.get('ice-cream-entries');
         if (result) {
@@ -56,7 +57,42 @@ const IceCreamTracker = () => {
     }
   };
 
-  // Add new flavour field
+  const handleAdminLogin = async () => {
+    setIsLoading(true);
+    setError('');
+    
+    try {
+      const response = await fetch('/api/verify-admin', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/json',
+        },
+        body: JSON.stringify({ password: adminPassword }),
+      });
+
+      const data = await response.json();
+
+      if (response.ok && data.valid) {
+        setIsAdmin(true);
+        setShowAdminPrompt(false);
+        setAdminPassword('');
+      } else {
+        setError('Incorrect admin password');
+        setAdminPassword('');
+      }
+    } catch (error) {
+      console.error('Error verifying admin:', error);
+      setError('Could not verify admin password');
+      setAdminPassword('');
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleAdminLogout = () => {
+    setIsAdmin(false);
+  };
+
   const addFlavourField = () => {
     setFormData({
       ...formData,
@@ -64,7 +100,6 @@ const IceCreamTracker = () => {
     });
   };
 
-  // Remove flavour field
   const removeFlavourField = (index) => {
     const newFlavours = [...formData.flavours];
     newFlavours.splice(index, 1);
@@ -74,7 +109,6 @@ const IceCreamTracker = () => {
     });
   };
 
-  // Update specific flavour
   const updateFlavour = (index, value) => {
     const newFlavours = [...formData.flavours];
     newFlavours[index] = value;
@@ -85,7 +119,6 @@ const IceCreamTracker = () => {
   };
 
   const handleSubmit = async () => {
-    // Filter out empty flavours
     const nonEmptyFlavours = formData.flavours.filter(flavour => flavour.trim() !== '');
     
     if (nonEmptyFlavours.length === 0 || !formData.person) {
@@ -97,12 +130,11 @@ const IceCreamTracker = () => {
     setError('');
     
     try {
-      // Save each flavour to PostgreSQL via Vercel API
       const savedEntries = [];
       for (const flavour of nonEmptyFlavours) {
         const entryToSave = {
           shop: formData.shop,
-          flavor: flavour.trim(), // Note: API expects 'flavor' (American spelling)
+          flavor: flavour.trim(),
           date: formData.date,
           notes: formData.notes,
           person: formData.person
@@ -124,11 +156,9 @@ const IceCreamTracker = () => {
         savedEntries.push(savedEntry);
       }
       
-      // Update UI with all saved entries
       const updatedEntries = [...savedEntries, ...entries];
       setEntries(updatedEntries);
       
-      // Keep local backup
       try {
         if (window.storage) {
           await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
@@ -137,7 +167,6 @@ const IceCreamTracker = () => {
         console.log('Could not save to local storage:', storageError);
       }
       
-      // Reset form
       setFormData({
         shop: 'Joelato',
         flavours: [''],
@@ -151,7 +180,6 @@ const IceCreamTracker = () => {
       console.error('Error saving entries:', error);
       setError('Failed to save to database. Saving locally.');
       
-      // Fallback to local storage
       const localEntries = nonEmptyFlavours.map((flavour, index) => ({
         shop: formData.shop,
         flavor: flavour.trim(),
@@ -180,50 +208,53 @@ const IceCreamTracker = () => {
   };
 
   const deleteEntry = async (id) => {
-  if (!window.confirm('Are you sure you want to delete this entry?')) return;
-  
-  setIsLoading(true);
-  try {
-    // Use query parameter instead of dynamic route
-    const response = await fetch(`/api/entries?id=${id}`, {
-      method: 'DELETE',
-    });
-    
-    if (!response.ok) {
-      throw new Error(`HTTP error! status: ${response.status}`);
+    if (!isAdmin) {
+      setError('Admin access required to delete entries');
+      setShowAdminPrompt(true);
+      return;
     }
+
+    if (!window.confirm('Are you sure you want to delete this entry?')) return;
     
-    const updatedEntries = entries.filter(e => e.id !== id);
-    setEntries(updatedEntries);
-    
-    // Update local backup
+    setIsLoading(true);
     try {
-      if (window.storage) {
-        await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+      const response = await fetch(`/api/entries?id=${id}`, {
+        method: 'DELETE',
+      });
+      
+      if (!response.ok) {
+        throw new Error(`HTTP error! status: ${response.status}`);
       }
-    } catch (storageError) {
-      console.log('Could not update local storage:', storageError);
-    }
-    
-  } catch (error) {
-    console.error('Error deleting entry:', error);
-    setError('Failed to delete from database. Deleting locally.');
-    
-    // Fallback to local delete
-    const updatedEntries = entries.filter(e => e.id !== id);
-    setEntries(updatedEntries);
-    
-    try {
-      if (window.storage) {
-        await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+      
+      const updatedEntries = entries.filter(e => e.id !== id);
+      setEntries(updatedEntries);
+      
+      try {
+        if (window.storage) {
+          await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+        }
+      } catch (storageError) {
+        console.log('Could not update local storage:', storageError);
       }
-    } catch (storageError) {
-      console.log('Could not update local storage:', storageError);
+      
+    } catch (error) {
+      console.error('Error deleting entry:', error);
+      setError('Failed to delete from database. Deleting locally.');
+      
+      const updatedEntries = entries.filter(e => e.id !== id);
+      setEntries(updatedEntries);
+      
+      try {
+        if (window.storage) {
+          await window.storage.set('ice-cream-entries', JSON.stringify(updatedEntries));
+        }
+      } catch (storageError) {
+        console.log('Could not update local storage:', storageError);
+      }
+    } finally {
+      setIsLoading(false);
     }
-  } finally {
-    setIsLoading(false);
-  }
-};
+  };
 
   const filteredEntries = entries.filter(e => {
     if (filter === 'all') return true;
@@ -239,7 +270,6 @@ const IceCreamTracker = () => {
     });
   };
 
-  // Group entries by date for better display
   const groupedEntries = filteredEntries.reduce((groups, entry) => {
     const date = entry.date;
     if (!groups[date]) {
@@ -249,10 +279,8 @@ const IceCreamTracker = () => {
     return groups;
   }, {});
 
-  // Sort dates descending
   const sortedDates = Object.keys(groupedEntries).sort((a, b) => new Date(b) - new Date(a));
 
-  // Get today's entries count
   const today = new Date().toISOString().split('T')[0];
   const todaysEntries = entries.filter(e => e.date === today).length;
 
@@ -339,7 +367,6 @@ const IceCreamTracker = () => {
       `}</style>
 
       <div className="p-4 scanline">
-        {/* Status Bar */}
         {error && (
           <div className="mb-3 p-2 bg-red-900 text-red-300 border border-red-700">
             <div className="flex justify-between">
@@ -358,7 +385,39 @@ const IceCreamTracker = () => {
           </div>
         )}
 
-        {/* Header */}
+        {/* Admin Login Prompt */}
+        {showAdminPrompt && !isAdmin && (
+          <div className="mb-3 p-4 bg-yellow-900 border border-yellow-400">
+            <div className="text-yellow-300 mb-3">
+              ═══ ADMIN AUTHENTICATION REQUIRED ═══
+            </div>
+            <div className="flex items-center gap-2">
+              <span className="text-green-400">PASSWORD:</span>
+              <input
+                type="password"
+                value={adminPassword}
+                onChange={(e) => setAdminPassword(e.target.value)}
+                onKeyPress={(e) => e.key === 'Enter' && handleAdminLogin()}
+                className="dos-input flex-1"
+                placeholder="Enter admin password"
+                autoFocus
+              />
+              <button
+                onClick={handleAdminLogin}
+                className="px-4 py-1 text-black bg-green-400 hover:bg-green-500 border border-green-700"
+              >
+                [ENTER]
+              </button>
+              <button
+                onClick={() => setShowAdminPrompt(false)}
+                className="px-4 py-1 text-black bg-red-400 hover:bg-red-500 border border-red-700"
+              >
+                [CANCEL]
+              </button>
+            </div>
+          </div>
+        )}
+
         <div className="mb-4">
           <div className="text-yellow-400">
             ╔════════════════════════════════════════════════════════════════════════════╗
@@ -372,7 +431,6 @@ const IceCreamTracker = () => {
           </div>
         </div>
 
-        {/* Stats Bar */}
         <div className="mb-4 text-green-400">
           <div className="flex flex-wrap gap-4">
             <div>
@@ -390,10 +448,14 @@ const IceCreamTracker = () => {
             <div>
               <span className="text-cyan-400">DB:</span> PostgreSQL
             </div>
+            {isAdmin && (
+              <div>
+                <span className="text-yellow-400">MODE:</span> <span className="text-yellow-300">ADMIN</span>
+              </div>
+            )}
           </div>
         </div>
 
-        {/* Menu */}
         <div className="mb-4">
           <div className="text-white mb-2">
             GELATO BASE MENU
@@ -434,10 +496,24 @@ const IceCreamTracker = () => {
             >
               [R]EFRESH
             </button>
+            {isAdmin ? (
+              <button
+                onClick={handleAdminLogout}
+                className="px-3 py-1 text-yellow-400 hover:text-white hover:bg-yellow-900 border border-yellow-700"
+              >
+                [L]OGOUT ADMIN
+              </button>
+            ) : (
+              <button
+                onClick={() => setShowAdminPrompt(true)}
+                className="px-3 py-1 text-yellow-400 hover:text-white hover:bg-yellow-900 border border-yellow-700"
+              >
+                [A]DMIN LOGIN
+              </button>
+            )}
           </div>
         </div>
 
-        {/* New Entry Form */}
         {showForm && (
           <div className="border border-cyan-400 p-4 mb-4 bg-gray-900">
             <div className="text-yellow-400 mb-3">
@@ -482,7 +558,6 @@ const IceCreamTracker = () => {
                 />
               </div>
 
-              {/* Multiple Flavours Section */}
               <div className="space-y-2">
                 <div className="flex items-center justify-between">
                   <span className="text-green-400">FLAVOURS:</span>
@@ -552,7 +627,6 @@ const IceCreamTracker = () => {
           </div>
         )}
 
-        {/* Entries List - Grouped by Date */}
         <div className="mb-4">
           <div className="text-white mb-2">
             RECORDED FLAVOURS
@@ -578,7 +652,6 @@ const IceCreamTracker = () => {
                     {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
                   </div>
                   
-                  {/* Group entries by shop within this date */}
                   {Array.from(new Set(groupedEntries[date].map(e => e.shop))).map(shop => {
                     const shopEntries = groupedEntries[date].filter(e => e.shop === shop);
                     const people = Array.from(new Set(shopEntries.map(e => e.person)));
@@ -596,14 +669,16 @@ const IceCreamTracker = () => {
                           {shopEntries.map(entry => (
                             <div key={entry.id} className="relative group">
                               <div className="flavour-tag">
-                                {entry.flavor} {/* API returns 'flavor' not 'flavour' */}
-                                <button
-                                  onClick={() => deleteEntry(entry.id)}
-                                  className="ml-2 text-red-400 hover:text-red-300 text-xs"
-                                  title="Delete this flavour"
-                                >
-                                  [x]
-                                </button>
+                                {entry.flavor}
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => deleteEntry(entry.id)}
+                                    className="ml-2 text-red-400 hover:text-red-300 text-xs"
+                                    title="Delete this flavour (admin only)"
+                                  >
+                                    [x]
+                                  </button>
+                                )}
                               </div>
                             </div>
                           ))}
@@ -623,7 +698,6 @@ const IceCreamTracker = () => {
           )}
         </div>
 
-        {/* Command Prompt */}
         <div className="mt-6 text-green-400">
           <div className="flex items-center">
             <span>GELATO BASE&gt;</span>
@@ -631,7 +705,6 @@ const IceCreamTracker = () => {
           </div>
         </div>
 
-        {/* Simple Footer */}
         <div className="mt-6 pt-2 border-t border-cyan-700 text-sm text-gray-400">
           <div className="flex justify-between">
             <div>
