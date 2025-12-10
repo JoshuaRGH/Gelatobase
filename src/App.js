@@ -1259,4 +1259,4 @@ const IceCreamTracker = () => {
   );
 };
 
-export default IceCreamTracker;ma
+export default IceCreamTracker;
