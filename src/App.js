@@ -308,8 +308,8 @@ const IceCreamTracker = () => {
       return acc;
     }, {});
 
-    // Get top 10 flavors
-    const topFlavors = Object.entries(flavorCounts)
+    // Get top 10 flavours
+    const topFlavours = Object.entries(flavorCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
@@ -330,7 +330,7 @@ const IceCreamTracker = () => {
     }, {});
 
     const visitStats = Object.values(visitsMap).map(visit => visit.length);
-    const avgFlavorsPerVisit = (visitStats.reduce((a, b) => a + b, 0) / visitStats.length).toFixed(1);
+    const avgFlavoursPerVisit = (visitStats.reduce((a, b) => a + b, 0) / visitStats.length).toFixed(1);
 
     // Date range analysis
     const dates = entries.map(e => new Date(e.date)).sort((a, b) => a - b);
@@ -344,9 +344,9 @@ const IceCreamTracker = () => {
     const shopRatio = joelatoCount > 0 ? (marysCount / joelatoCount).toFixed(2) : 'N/A';
 
     // Flavor variety by shop
-    const flavorsByShop = entries.reduce((acc, entry) => {
+    const flavoursByShop = entries.reduce((acc, entry) => {
       if (!acc[entry.shop]) acc[entry.shop] = new Set();
-      acc[entry.shop].add(entry.flavor.toLowerCase().trim());
+      acc[entry.shop].add(entry.flavour.toLowerCase().trim());
       return acc;
     }, {});
 
@@ -364,24 +364,24 @@ const IceCreamTracker = () => {
     const recentEntries = entries.filter(e => new Date(e.date) >= sevenDaysAgo);
     const recentCount = recentEntries.length;
 
-    // Person preferences (which flavors each person likes most)
-    const personFlavors = entries.reduce((acc, entry) => {
+    // Person preferences (which flavours each person likes most)
+    const personFlavours = entries.reduce((acc, entry) => {
       if (!acc[entry.person]) acc[entry.person] = {};
-      const flavor = entry.flavor.toLowerCase().trim();
-      acc[entry.person][flavor] = (acc[entry.person][flavor] || 0) + 1;
+      const flavour = entry.flavour.toLowerCase().trim();
+      acc[entry.person][flavour] = (acc[entry.person][flavour] || 0) + 1;
       return acc;
     }, {});
 
     // Find each person's favorite flavor
-    const personFavorites = Object.entries(personFlavors).map(([person, flavors]) => {
-      const favorite = Object.entries(flavors).sort((a, b) => b[1] - a[1])[0];
+    const personFavorites = Object.entries(personFlavours).map(([person, flavours]) => {
+      const favorite = Object.entries(flavours).sort((a, b) => b[1] - a[1])[0];
       return { person, favorite: favorite ? favorite[0] : 'None', count: favorite ? favorite[1] : 0 };
     });
 
     return {
       // Basic stats
-      totalFlavors: entries.length,
-      uniqueFlavors: new Set(entries.map(e => e.flavor.toLowerCase().trim())).size,
+      totalFlavours: entries.length,
+      uniqueFlavours: new Set(entries.map(e => e.flavour.toLowerCase().trim())).size,
       totalVisits: Object.keys(visitsMap).length,
       
       // Shop stats
@@ -397,26 +397,26 @@ const IceCreamTracker = () => {
       mostActiveTaster,
       personFavorites,
       
-      // Flavor stats
-      flavorCounts,
-      topFlavors,
-      mostCommonFlavor: topFlavors[0] || ['None', 0],
+      // Flavour stats
+      flavourCounts,
+      topFlavours,
+      mostCommonFlavour: topFlavours[0] || ['None', 0],
       
       // Visit stats
-      avgFlavorsPerVisit,
-      maxFlavorsPerVisit: Math.max(...visitStats),
-      minFlavorsPerVisit: Math.min(...visitStats),
-      medianFlavorsPerVisit: visitStats.sort((a, b) => a - b)[Math.floor(visitStats.length / 2)] || 0,
+      avgFlavoursPerVisit,
+      maxFlavoursPerVisit: Math.max(...visitStats),
+      minFlavoursPerVisit: Math.min(...visitStats),
+      medianFlavoursPerVisit: visitStats.sort((a, b) => a - b)[Math.floor(visitStats.length / 2)] || 0,
       
       // Time stats
       firstVisit: firstVisit.toLocaleDateString(),
       lastVisit: lastVisit.toLocaleDateString(),
       daysBetween,
-      flavorsPerDay: (entries.length / daysBetween).toFixed(2),
+      flavoursPerDay: (entries.length / daysBetween).toFixed(2),
       
       // Advanced stats
-      flavorsByShop: Object.fromEntries(
-        Object.entries(flavorsByShop).map(([shop, flavors]) => [shop, flavors.size])
+      flavoursByShop: Object.fromEntries(
+        Object.entries(flavoursByShop).map(([shop, flavours]) => [shop, flavours.size])
       ),
       monthlyCounts,
       recentActivity: recentCount,
@@ -424,7 +424,7 @@ const IceCreamTracker = () => {
       
       // For graphs
       shopData: Object.entries(shopCounts),
-      topFlavorsData: topFlavors,
+      topFlavoursData: topFlavours,
       monthlyData: Object.entries(monthlyCounts).slice(-6), // Last 6 months
       personData: Object.entries(personCounts).slice(0, 5), // Top 5 people
     };
@@ -829,27 +829,27 @@ const IceCreamTracker = () => {
             
             <div className="data-grid mb-6">
               <div className="data-cell pulse-blue">
-                <div className="data-label">TOTAL FLAVORS</div>
-                <div className="data-value laser-blue">{stats.totalFlavors}</div>
+                <div className="data-label">TOTAL FLAVOURS</div>
+                <div className="data-value laser-blue">{stats.totalFlavours}</div>
               </div>
               <div className="data-cell">
-                <div className="data-label">UNIQUE FLAVORS</div>
-                <div className="data-value laser-green">{stats.uniqueFlavors}</div>
+                <div className="data-label">UNIQUE FLAVOURS</div>
+                <div className="data-value laser-green">{stats.uniqueFlavours}</div>
               </div>
               <div className="data-cell pulse-pink">
                 <div className="data-label">TOTAL VISITS</div>
                 <div className="data-value laser-pink">{stats.totalVisits}</div>
               </div>
               <div className="data-cell">
-                <div className="data-label">FLAVORS/DAY</div>
-                <div className="data-value laser-orange">{stats.flavorsPerDay}</div>
+                <div className="data-label">FLAVOURS/DAY</div>
+                <div className="data-value laser-orange">{stats.flavoursPerDay}</div>
               </div>
             </div>
 
             {/* Shop Comparison Bar Chart */}
             <div className="mb-6">
               <div className="text-yellow-400 mb-3 flex items-center justify-between">
-                <span>SHOP BATTLEFIELD:</span>
+                <span>SHOP COMPARISON:</span>
                 <span className="text-sm">
                   JOELATO: {stats.joelatoCount} • MARY'S: {stats.marysCount}
                 </span>
@@ -873,16 +873,16 @@ const IceCreamTracker = () => {
                 })}
               </div>
               <div className="text-center text-xs text-cyan-400 mt-2">
-                {stats.mostPopularShop[0]} leads by {stats.mostPopularShop[1]} flavors
+                {stats.mostPopularShop[0]} leads by {stats.mostPopularShop[1]} flavours
               </div>
             </div>
 
-            {/* Top Flavors Display */}
+            {/* Top Flavours Display */}
             <div className="mb-6">
-              <div className="text-yellow-400 mb-3">TOP FLAVOR ARTILLERY:</div>
+              <div className="text-yellow-400 mb-3">TOP FLAVOURS:</div>
               <div className="grid grid-cols-2 gap-4">
-                {stats.topFlavors.slice(0, 8).map(([flavor, count], index) => {
-                  const percentage = ((count / stats.totalFlavors) * 100).toFixed(1);
+                {stats.topFlavours.slice(0, 8).map(([flavor, count], index) => {
+                  const percentage = ((count / stats.totalFlavours) * 100).toFixed(1);
                   const width = Math.min(100, percentage * 2);
                   
                   return (
@@ -911,7 +911,7 @@ const IceCreamTracker = () => {
             {/* Recent Activity Sparkline */}
             {stats.monthlyData.length > 1 && (
               <div className="mb-6">
-                <div className="text-yellow-400 mb-3">RECENT ACTIVITY PULSE:</div>
+                <div className="text-yellow-400 mb-3">RECENT ACTIVITY:</div>
                 <div className="sparkline">
                   {stats.monthlyData.map(([month, count], index) => {
                     const values = stats.monthlyData.map(([_, c]) => c);
@@ -953,7 +953,7 @@ const IceCreamTracker = () => {
               <div className="space-y-2">
                 {stats.personData.map(([person, count], index) => {
                   const isChampion = index === 0;
-                  const percentage = ((count / stats.totalFlavors) * 100).toFixed(1);
+                  const percentage = ((count / stats.totalFlavours) * 100).toFixed(1);
                   const favorite = stats.personFavorites.find(p => p.person === person);
                   
                   return (
@@ -970,7 +970,7 @@ const IceCreamTracker = () => {
                         </span>
                       </div>
                       <div className="flex items-center space-x-4">
-                        <span className="laser-blue">{count} flavors</span>
+                        <span className="laser-blue">{count} flavours</span>
                         <span className="text-sm text-gray-400">{percentage}%</span>
                         {favorite && favorite.favorite !== 'None' && (
                           <span className="text-xs text-cyan-400">
@@ -995,10 +995,10 @@ const IceCreamTracker = () => {
               </div>
               
               <div className="border border-purple-700 p-3">
-                <div className="text-xs text-gray-400 mb-1">AVG FLAVORS/VISIT</div>
-                <div className="laser-pink text-lg">{stats.avgFlavorsPerVisit}</div>
+                <div className="text-xs text-gray-400 mb-1">AVG FLAVOURS/VISIT</div>
+                <div className="laser-pink text-lg">{stats.avgFlavoursPerVisit}</div>
                 <div className="text-xs text-gray-400">
-                  Range: {stats.minFlavorsPerVisit}-{stats.maxFlavorsPerVisit}
+                  Range: {stats.minFlavoursPerVisit}-{stats.maxFlavoursPerVisit}
                 </div>
               </div>
               
@@ -1027,7 +1027,7 @@ const IceCreamTracker = () => {
               <div className="text-sm space-y-1 text-green-400">
                 <div>Tracking period........: {stats.daysBetween} days</div>
                 <div>Date range.............: {stats.firstVisit} to {stats.lastVisit}</div>
-                <div>Flavors per day........: {stats.flavorsPerDay}</div>
+                <div>Flavours per day........: {stats.flavoursPerDay}</div>
                 <div>Unique shops visited...: {Object.keys(stats.shopCounts).length}</div>
                 <div>Unique tasters.........: {Object.keys(stats.personCounts).length}</div>
               </div>
@@ -1259,4 +1259,4 @@ const IceCreamTracker = () => {
   );
 };
 
-export default IceCreamTracker;
+export default IceCreamTracker;ma
