@@ -285,7 +285,7 @@ const IceCreamTracker = () => {
   const today = new Date().toISOString().split('T')[0];
   const todaysEntries = entries.filter(e => e.date === today).length;
 
-  // Calculate statistics
+  // Enhanced Statistics Calculation
   const calculateStats = () => {
     if (entries.length === 0) return null;
 
@@ -301,62 +301,132 @@ const IceCreamTracker = () => {
       return acc;
     }, {});
 
-    // Most popular shop
-    const mostPopularShop = Object.entries(shopCounts).sort((a, b) => b[1] - a[1])[0];
-
-    // Most active taster
-    const mostActiveTaster = Object.entries(personCounts).sort((a, b) => b[1] - a[1])[0];
-
-    // Flavours per visit (entries grouped by date and person)
-    const visitsMap = entries.reduce((acc, entry) => {
-      const key = `${entry.date}-${entry.person}`;
-      acc[key] = (acc[key] || 0) + 1;
+    // Flavor analysis
+    const flavorCounts = entries.reduce((acc, entry) => {
+      const flavor = entry.flavor.toLowerCase().trim();
+      acc[flavor] = (acc[flavor] || 0) + 1;
       return acc;
     }, {});
-    const flavoursPerVisit = Object.values(visitsMap);
-    const avgFlavoursPerVisit = (flavoursPerVisit.reduce((a, b) => a + b, 0) / flavoursPerVisit.length).toFixed(1);
-    const maxFlavoursPerVisit = Math.max(...flavoursPerVisit);
-    const minFlavoursPerVisit = Math.min(...flavoursPerVisit);
 
-    // Calculate median
-    const sortedFlavours = [...flavoursPerVisit].sort((a, b) => a - b);
-    const median = sortedFlavours.length % 2 === 0
-      ? (sortedFlavours[sortedFlavours.length / 2 - 1] + sortedFlavours[sortedFlavours.length / 2]) / 2
-      : sortedFlavours[Math.floor(sortedFlavours.length / 2)];
+    // Get top 10 flavors
+    const topFlavors = Object.entries(flavorCounts)
+      .sort((a, b) => b[1] - a[1])
+      .slice(0, 10);
 
-    // Date range
+    // Most popular shop
+    const shopEntries = Object.entries(shopCounts);
+    const mostPopularShop = shopEntries.sort((a, b) => b[1] - a[1])[0];
+
+    // Most active taster
+    const personEntries = Object.entries(personCounts);
+    const mostActiveTaster = personEntries.sort((a, b) => b[1] - a[1])[0];
+
+    // Visits analysis (group by date and person)
+    const visitsMap = entries.reduce((acc, entry) => {
+      const key = `${entry.date}-${entry.person}`;
+      if (!acc[key]) acc[key] = [];
+      acc[key].push(entry);
+      return acc;
+    }, {});
+
+    const visitStats = Object.values(visitsMap).map(visit => visit.length);
+    const avgFlavorsPerVisit = (visitStats.reduce((a, b) => a + b, 0) / visitStats.length).toFixed(1);
+
+    // Date range analysis
     const dates = entries.map(e => new Date(e.date)).sort((a, b) => a - b);
     const firstVisit = dates[0];
     const lastVisit = dates[dates.length - 1];
-    const daysBetween = Math.floor((lastVisit - firstVisit) / (1000 * 60 * 60 * 24));
+    const daysBetween = Math.max(1, Math.floor((lastVisit - firstVisit) / (1000 * 60 * 60 * 24)));
 
-    // Unique flavours
-    const uniqueFlavours = new Set(entries.map(e => e.flavor.toLowerCase().trim())).size;
+    // Shop comparison
+    const joelatoCount = shopCounts['Joelato'] || 0;
+    const marysCount = shopCounts["Mary's Milk Bar"] || 0;
+    const shopRatio = joelatoCount > 0 ? (marysCount / joelatoCount).toFixed(2) : 'N/A';
 
-    // Most common flavour
-    const flavourCounts = entries.reduce((acc, entry) => {
-      const flavour = entry.flavor.toLowerCase().trim();
-      acc[flavour] = (acc[flavour] || 0) + 1;
+    // Flavor variety by shop
+    const flavorsByShop = entries.reduce((acc, entry) => {
+      if (!acc[entry.shop]) acc[entry.shop] = new Set();
+      acc[entry.shop].add(entry.flavor.toLowerCase().trim());
       return acc;
     }, {});
-    const mostCommonFlavour = Object.entries(flavourCounts).sort((a, b) => b[1] - a[1])[0];
+
+    // Monthly trends
+    const monthlyCounts = entries.reduce((acc, entry) => {
+      const date = new Date(entry.date);
+      const monthYear = `${date.getMonth() + 1}/${date.getFullYear()}`;
+      acc[monthYear] = (acc[monthYear] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Last 7 days activity
+    const sevenDaysAgo = new Date();
+    sevenDaysAgo.setDate(sevenDaysAgo.getDate() - 7);
+    const recentEntries = entries.filter(e => new Date(e.date) >= sevenDaysAgo);
+    const recentCount = recentEntries.length;
+
+    // Person preferences (which flavors each person likes most)
+    const personFlavors = entries.reduce((acc, entry) => {
+      if (!acc[entry.person]) acc[entry.person] = {};
+      const flavor = entry.flavor.toLowerCase().trim();
+      acc[entry.person][flavor] = (acc[entry.person][flavor] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Find each person's favorite flavor
+    const personFavorites = Object.entries(personFlavors).map(([person, flavors]) => {
+      const favorite = Object.entries(flavors).sort((a, b) => b[1] - a[1])[0];
+      return { person, favorite: favorite ? favorite[0] : 'None', count: favorite ? favorite[1] : 0 };
+    });
 
     return {
-      totalFlavours: entries.length,
-      uniqueFlavours,
+      // Basic stats
+      totalFlavors: entries.length,
+      uniqueFlavors: new Set(entries.map(e => e.flavor.toLowerCase().trim())).size,
       totalVisits: Object.keys(visitsMap).length,
+      
+      // Shop stats
       shopCounts,
-      personCounts,
       mostPopularShop,
+      joelatoCount,
+      marysCount,
+      shopRatio,
+      shopComparison: { Joelato: joelatoCount, Marys: marysCount },
+      
+      // Person stats
+      personCounts,
       mostActiveTaster,
-      avgFlavoursPerVisit,
-      maxFlavoursPerVisit,
-      minFlavoursPerVisit,
-      medianFlavoursPerVisit: median,
+      personFavorites,
+      
+      // Flavor stats
+      flavorCounts,
+      topFlavors,
+      mostCommonFlavor: topFlavors[0] || ['None', 0],
+      
+      // Visit stats
+      avgFlavorsPerVisit,
+      maxFlavorsPerVisit: Math.max(...visitStats),
+      minFlavorsPerVisit: Math.min(...visitStats),
+      medianFlavorsPerVisit: visitStats.sort((a, b) => a - b)[Math.floor(visitStats.length / 2)] || 0,
+      
+      // Time stats
       firstVisit: firstVisit.toLocaleDateString(),
       lastVisit: lastVisit.toLocaleDateString(),
       daysBetween,
-      mostCommonFlavour
+      flavorsPerDay: (entries.length / daysBetween).toFixed(2),
+      
+      // Advanced stats
+      flavorsByShop: Object.fromEntries(
+        Object.entries(flavorsByShop).map(([shop, flavors]) => [shop, flavors.size])
+      ),
+      monthlyCounts,
+      recentActivity: recentCount,
+      recentPercentage: ((recentCount / entries.length) * 100).toFixed(1),
+      
+      // For graphs
+      shopData: Object.entries(shopCounts),
+      topFlavorsData: topFlavors,
+      monthlyData: Object.entries(monthlyCounts).slice(-6), // Last 6 months
+      personData: Object.entries(personCounts).slice(0, 5), // Top 5 people
     };
   };
 
@@ -428,6 +498,8 @@ const IceCreamTracker = () => {
           height: 2px;
           background: linear-gradient(to bottom, transparent, rgba(0, 255, 0, 0.2), transparent);
           animation: scan 3s linear infinite;
+          z-index: 1000;
+          pointer-events: none;
         }
         @keyframes scan {
           0% { transform: translateY(-100%); }
@@ -441,6 +513,155 @@ const IceCreamTracker = () => {
           margin: 2px;
           border-radius: 3px;
           border: 1px solid #008800;
+        }
+        
+        /* TRON/ARCADE STYLES */
+        .tron-glow {
+          box-shadow: 0 0 10px #00ffff, 0 0 20px #00ffff, 0 0 30px #00ffff;
+        }
+        .tron-border {
+          border: 1px solid #00ffff;
+          box-shadow: inset 0 0 10px rgba(0, 255, 255, 0.3);
+        }
+        .tron-text {
+          text-shadow: 0 0 5px #00ffff;
+          color: #00ffff;
+        }
+        .arcade-text {
+          text-shadow: 0 0 5px #ff00ff;
+          color: #ff00ff;
+        }
+        .laser-blue { color: #00aaff; }
+        .laser-pink { color: #ff00ff; }
+        .laser-green { color: #00ff00; }
+        .laser-orange { color: #ff9900; }
+        .laser-cyan { color: #00ffff; }
+        
+        /* Graph styles */
+        .bar-graph {
+          display: flex;
+          align-items: flex-end;
+          height: 100px;
+          padding: 10px 0;
+          border-bottom: 1px solid #00ffff;
+          background: rgba(0, 0, 0, 0.5);
+        }
+        .bar {
+          flex: 1;
+          margin: 0 2px;
+          position: relative;
+          transition: height 0.3s ease;
+        }
+        .bar-value {
+          position: absolute;
+          top: -20px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 10px;
+          color: #00ffff;
+          background: rgba(0, 0, 0, 0.8);
+          padding: 0 4px;
+          border-radius: 2px;
+          white-space: nowrap;
+        }
+        .bar-label {
+          position: absolute;
+          bottom: -25px;
+          left: 50%;
+          transform: translateX(-50%);
+          font-size: 10px;
+          color: #00ff00;
+          writing-mode: vertical-rl;
+          text-orientation: mixed;
+          height: 20px;
+          background: rgba(0, 0, 0, 0.8);
+          padding: 2px;
+        }
+        
+        /* Sparkline */
+        .sparkline {
+          height: 40px;
+          position: relative;
+          border-bottom: 1px solid #ff00ff;
+          background: rgba(0, 0, 0, 0.3);
+          margin: 10px 0;
+        }
+        .sparkline-point {
+          position: absolute;
+          width: 4px;
+          height: 4px;
+          background: #ff00ff;
+          border-radius: 50%;
+          transform: translate(-50%, -50%);
+          z-index: 2;
+        }
+        .sparkline-line {
+          position: absolute;
+          background: linear-gradient(to right, #ff00ff00, #ff00ff, #ff00ff00);
+          height: 2px;
+          z-index: 1;
+        }
+        
+        /* Data grid */
+        .data-grid {
+          display: grid;
+          grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+          gap: 10px;
+          margin: 15px 0;
+        }
+        .data-cell {
+          border: 1px solid #00ffff;
+          padding: 8px;
+          background: rgba(0, 255, 255, 0.05);
+          border-radius: 4px;
+        }
+        .data-label {
+          color: #00ff00;
+          font-size: 12px;
+          margin-bottom: 5px;
+          text-transform: uppercase;
+          letter-spacing: 0.5px;
+        }
+        .data-value {
+          color: #00ffff;
+          font-size: 18px;
+          font-weight: bold;
+          text-shadow: 0 0 5px #00ffff;
+        }
+        
+        /* Pulsing animations */
+        @keyframes pulse-blue {
+          0%, 100% { 
+            box-shadow: 0 0 5px #00aaff, inset 0 0 5px rgba(0, 170, 255, 0.3); 
+          }
+          50% { 
+            box-shadow: 0 0 15px #00aaff, 0 0 25px #00aaff, inset 0 0 10px rgba(0, 170, 255, 0.5); 
+          }
+        }
+        @keyframes pulse-pink {
+          0%, 100% { 
+            box-shadow: 0 0 5px #ff00ff, inset 0 0 5px rgba(255, 0, 255, 0.3); 
+          }
+          50% { 
+            box-shadow: 0 0 15px #ff00ff, 0 0 25px #ff00ff, inset 0 0 10px rgba(255, 0, 255, 0.5); 
+          }
+        }
+        @keyframes pulse-cyan {
+          0%, 100% { 
+            box-shadow: 0 0 5px #00ffff, inset 0 0 5px rgba(0, 255, 255, 0.3); 
+          }
+          50% { 
+            box-shadow: 0 0 15px #00ffff, 0 0 25px #00ffff, inset 0 0 10px rgba(0, 255, 255, 0.5); 
+          }
+        }
+        .pulse-blue {
+          animation: pulse-blue 2s infinite;
+        }
+        .pulse-pink {
+          animation: pulse-pink 2s infinite;
+        }
+        .pulse-cyan {
+          animation: pulse-cyan 2s infinite;
         }
       `}</style>
 
@@ -569,10 +790,10 @@ const IceCreamTracker = () => {
             </button>
             <button
               onClick={() => setShowStats(!showStats)}
-              className={`px-3 py-1 ${showStats ? 'bg-magenta-400 text-black' : 'text-magenta-400 hover:text-white hover:bg-magenta-900'} border border-magenta-700`}
+              className={`px-3 py-1 ${showStats ? 'bg-gradient-to-r from-cyan-500 to-blue-500 text-black' : 'text-magenta-400 hover:text-white hover:bg-magenta-900'} border border-magenta-700`}
               disabled={isLoading}
             >
-              [#]NUMBER CRUNCH
+              [#]ANALYTICS
             </button>
             {isAdmin ? (
               <button
@@ -589,303 +810,133 @@ const IceCreamTracker = () => {
                 [A]DMIN LOGIN
               </button>
             )}
+            <button
+              onClick={loadEntries}
+              className="px-3 py-1 text-green-400 hover:text-white hover:bg-green-900 border border-green-700"
+              disabled={isLoading}
+            >
+              [R]EFRESH
+            </button>
           </div>
         </div>
 
-        {/* Statistics Panel */}
+        {/* Enhanced Statistics Panel */}
         {showStats && stats && (
-          <div className="border border-magenta-400 p-4 mb-4 bg-gray-900">
-            <div className="text-magenta-400 mb-3">
-              ═══ NUMBER CRUNCH: STATISTICAL ANALYSIS ═══
+          <div className="border border-magenta-400 p-4 mb-4 bg-gray-900 tron-border">
+            <div className="arcade-text mb-3 text-center text-lg">
+              ═══ GELATO ANALYTICS SUITE v1.0 ═══
             </div>
             
-            <div className="space-y-4 text-sm">
-              {/* Overview */}
-              <div>
-                <div className="text-yellow-400 mb-2">OVERVIEW:</div>
-                <div className="ml-4 space-y-1 text-green-400">
-                  <div>Total flavours tasted......: {stats.totalFlavours}</div>
-                  <div>Unique flavours............: {stats.uniqueFlavours}</div>
-                  <div>Total visits...............: {stats.totalVisits}</div>
-                  <div>Date range.................: {stats.firstVisit} to {stats.lastVisit}</div>
-                  <div>Days tracked...............: {stats.daysBetween} days</div>
-                  <div>Avg flavours per day.......: {(stats.totalFlavours / (stats.daysBetween || 1)).toFixed(2)}</div>
-                </div>
+            <div className="data-grid mb-6">
+              <div className="data-cell pulse-blue">
+                <div className="data-label">TOTAL FLAVORS</div>
+                <div className="data-value laser-blue">{stats.totalFlavors}</div>
               </div>
-
-              {/* Flavours per visit stats */}
-              <div>
-                <div className="text-yellow-400 mb-2">FLAVOURS PER VISIT:</div>
-                <div className="ml-4 space-y-1 text-green-400">
-                  <div>Average....................: {stats.avgFlavoursPerVisit} flavours</div>
-                  <div>Median.....................: {stats.medianFlavoursPerVisit} flavours</div>
-                  <div>Maximum....................: {stats.maxFlavoursPerVisit} flavours</div>
-                  <div>Minimum....................: {stats.minFlavoursPerVisit} flavours</div>
-                </div>
+              <div className="data-cell">
+                <div className="data-label">UNIQUE FLAVORS</div>
+                <div className="data-value laser-green">{stats.uniqueFlavors}</div>
               </div>
-
-              {/* Shop breakdown */}
-              <div>
-                <div className="text-yellow-400 mb-2">SHOP BREAKDOWN:</div>
-                <div className="ml-4 space-y-1 text-green-400">
-                  {Object.entries(stats.shopCounts).map(([shop, count]) => (
-                    <div key={shop}>
-                      {shop}...: {count} flavours ({((count / stats.totalFlavours) * 100).toFixed(1)}%)
-                      {shop === stats.mostPopularShop[0] && <span className="text-cyan-400"> ← MOST VISITED</span>}
-                    </div>
-                  ))}
-                </div>
+              <div className="data-cell pulse-pink">
+                <div className="data-label">TOTAL VISITS</div>
+                <div className="data-value laser-pink">{stats.totalVisits}</div>
               </div>
-
-              {/* Person breakdown */}
-              <div>
-                <div className="text-yellow-400 mb-2">TASTER BREAKDOWN:</div>
-                <div className="ml-4 space-y-1 text-green-400">
-                  {Object.entries(stats.personCounts).map(([person, count]) => (
-                    <div key={person}>
-                      {person}...: {count} flavours ({((count / stats.totalFlavours) * 100).toFixed(1)}%)
-                      {person === stats.mostActiveTaster[0] && <span className="text-cyan-400"> ← MOST ACTIVE</span>}
-                    </div>
-                  ))}
-                </div>
-              </div>
-
-              {/* Most common flavour */}
-              {stats.mostCommonFlavour[1] > 1 && (
-                <div>
-                  <div className="text-yellow-400 mb-2">REPEAT FLAVOURS:</div>
-                  <div className="ml-4 space-y-1 text-green-400">
-                    <div>
-                      Most repeated..............: {stats.mostCommonFlavour[0]} ({stats.mostCommonFlavour[1]} times)
-                    </div>
-                  </div>
-                </div>
-              )}
-            </div>
-
-            <div className="mt-4 pt-3 border-t border-magenta-700">
-              <button
-                onClick={() => setShowStats(false)}
-                className="px-4 py-1 text-black bg-magenta-400 hover:bg-magenta-500 border border-magenta-700"
-              >
-                [CLOSE STATS]
-              </button>
-            </div>
-          </div>
-        )}
-
-        {showForm && (
-          <div className="border border-cyan-400 p-4 mb-4 bg-gray-900">
-            <div className="text-yellow-400 mb-3">
-              ═══ ADD NEW FLAVOURS ═══
-            </div>
-            
-            <div className="space-y-3">
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 w-32">SHOP:</span>
-                <select
-                  value={formData.shop}
-                  onChange={(e) => setFormData({...formData, shop: e.target.value})}
-                  className="dos-select flex-1"
-                  disabled={isLoading}
-                >
-                  <option value="Joelato">JOELATO</option>
-                  <option value="Mary's Milk Bar">MARYS MILK BAR</option>
-                  <option value="Other">OTHER</option>
-                </select>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 w-32">NAME:</span>
-                <input
-                  type="text"
-                  value={formData.person}
-                  onChange={(e) => setFormData({...formData, person: e.target.value})}
-                  className="dos-input flex-1"
-                  placeholder="YOUR NAME"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className="text-green-400 w-32">DATE:</span>
-                <input
-                  type="date"
-                  value={formData.date}
-                  onChange={(e) => setFormData({...formData, date: e.target.value})}
-                  className="dos-input"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <div className="flex items-center justify-between">
-                  <span className="text-green-400">FLAVOURS:</span>
-                  <button
-                    type="button"
-                    onClick={addFlavourField}
-                    className="text-cyan-400 hover:text-white px-2 py-1 border border-cyan-700"
-                    disabled={isLoading}
-                  >
-                    [+ ADD FLAVOUR]
-                  </button>
-                </div>
-                
-                {formData.flavours.map((flavour, index) => (
-                  <div key={index} className="flex items-center gap-2">
-                    <span className="text-cyan-400 w-8">{index + 1}.</span>
-                    <input
-                      type="text"
-                      value={flavour}
-                      onChange={(e) => updateFlavour(index, e.target.value)}
-                      className="dos-input flex-1"
-                      placeholder={`FLAVOUR ${index + 1}`}
-                      disabled={isLoading}
-                    />
-                    {formData.flavours.length > 1 && (
-                      <button
-                        type="button"
-                        onClick={() => removeFlavourField(index)}
-                        className="text-red-400 hover:text-red-300 px-2 border border-red-700"
-                        disabled={isLoading}
-                      >
-                        [X]
-                      </button>
-                    )}
-                  </div>
-                ))}
-              </div>
-
-              <div className="flex gap-2">
-                <span className="text-green-400 w-32 pt-2">NOTES:</span>
-                <textarea
-                  value={formData.notes}
-                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
-                  className="dos-textarea flex-1"
-                  placeholder="OPTIONAL NOTES"
-                  disabled={isLoading}
-                />
-              </div>
-
-              <div className="flex gap-4 mt-4">
-                <button
-                  onClick={handleSubmit}
-                  className="px-6 py-2 text-black bg-green-400 hover:bg-green-500 border border-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
-                  disabled={isLoading || formData.flavours.filter(f => f.trim() !== '').length === 0 || !formData.person}
-                >
-                  {isLoading ? '[S]AVING...' : '[S]AVE FLAVOURS'}
-                </button>
-                <button
-                  onClick={() => setShowForm(false)}
-                  className="px-6 py-2 text-black bg-red-400 hover:bg-red-500 border border-red-700 disabled:opacity-50"
-                  disabled={isLoading}
-                >
-                  [C]ANCEL
-                </button>
+              <div className="data-cell">
+                <div className="data-label">FLAVORS/DAY</div>
+                <div className="data-value laser-orange">{stats.flavorsPerDay}</div>
               </div>
             </div>
-          </div>
-        )}
 
-        <div className="mb-4">
-          <div className="text-white mb-2">
-            RECORDED FLAVOURS
-          </div>
-          
-          {sortedDates.length === 0 ? (
-            <div className="text-red-400 ml-4">
-              No flavours recorded yet.
-              <br />
-              <br />
-              <button 
-                onClick={() => setShowForm(true)}
-                className="text-cyan-400 hover:text-white underline"
-              >
-                Click "NEW FLAVOURS" to add your first flavours
-              </button>
-            </div>
-          ) : (
-            <div className="space-y-6">
-              {sortedDates.map(date => (
-                <div key={date} className="border border-cyan-400 p-3 bg-gray-900">
-                  <div className="text-yellow-400 mb-3">
-                    {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
-                  </div>
+            {/* Shop Comparison Bar Chart */}
+            <div className="mb-6">
+              <div className="text-yellow-400 mb-3 flex items-center justify-between">
+                <span>SHOP BATTLEFIELD:</span>
+                <span className="text-sm">
+                  JOELATO: {stats.joelatoCount} • MARY'S: {stats.marysCount}
+                </span>
+              </div>
+              <div className="bar-graph">
+                {stats.shopData.map(([shop, count]) => {
+                  const maxCount = Math.max(stats.joelatoCount, stats.marysCount);
+                  const height = maxCount > 0 ? (count / maxCount) * 80 : 0;
+                  const color = shop === 'Joelato' ? '#00aaff' : '#ff00ff';
                   
-                  {Array.from(new Set(groupedEntries[date].map(e => e.shop))).map(shop => {
-                    const shopEntries = groupedEntries[date].filter(e => e.shop === shop);
-                    const people = Array.from(new Set(shopEntries.map(e => e.person)));
+                  return (
+                    <div key={shop} className="bar" style={{ 
+                      height: `${height}px`,
+                      background: `linear-gradient(to top, ${color}20, ${color}cc)`,
+                      border: `1px solid ${color}`
+                    }}>
+                      <div className="bar-value">{count}</div>
+                      <div className="bar-label">{shop.substring(0, 3)}</div>
+                    </div>
+                  );
+                })}
+              </div>
+              <div className="text-center text-xs text-cyan-400 mt-2">
+                {stats.mostPopularShop[0]} leads by {stats.mostPopularShop[1]} flavors
+              </div>
+            </div>
+
+            {/* Top Flavors Display */}
+            <div className="mb-6">
+              <div className="text-yellow-400 mb-3">TOP FLAVOR ARTILLERY:</div>
+              <div className="grid grid-cols-2 gap-4">
+                {stats.topFlavors.slice(0, 8).map(([flavor, count], index) => {
+                  const percentage = ((count / stats.totalFlavors) * 100).toFixed(1);
+                  const width = Math.min(100, percentage * 2);
+                  
+                  return (
+                    <div key={flavor} className="space-y-1">
+                      <div className="flex justify-between text-sm">
+                        <span className="laser-green truncate max-w-[120px]">
+                          {flavor.charAt(0).toUpperCase() + flavor.slice(1)}
+                        </span>
+                        <span className="laser-blue">{count}</span>
+                      </div>
+                      <div className="h-2 bg-gray-800">
+                        <div 
+                          className="h-full bg-gradient-to-r from-cyan-500 to-blue-500"
+                          style={{ width: `${width}%` }}
+                        ></div>
+                      </div>
+                      <div className="text-right text-xs text-gray-400">
+                        {percentage}%
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Recent Activity Sparkline */}
+            {stats.monthlyData.length > 1 && (
+              <div className="mb-6">
+                <div className="text-yellow-400 mb-3">RECENT ACTIVITY PULSE:</div>
+                <div className="sparkline">
+                  {stats.monthlyData.map(([month, count], index) => {
+                    const values = stats.monthlyData.map(([_, c]) => c);
+                    const max = Math.max(...values);
+                    const x = (index / (stats.monthlyData.length - 1)) * 100;
+                    const y = 100 - (count / max) * 100;
                     
                     return (
-                      <div key={shop} className="mb-4 ml-4">
-                        <div className="text-green-400 mb-2">
-                          <span className="text-yellow-400 mr-2">{shop}</span>
-                          <span className="text-cyan-400">
-                            • tasted by {people.join(', ')}
-                          </span>
-                        </div>
-                        
-                        <div className="flex flex-wrap gap-2 mb-3">
-                          {shopEntries.map(entry => (
-                            <div key={entry.id} className="relative group">
-                              <div className="flavour-tag">
-                                {entry.flavor}
-                                {isAdmin && (
-                                  <button
-                                    onClick={() => deleteEntry(entry.id)}
-                                    className="ml-2 text-red-400 hover:text-red-300 text-xs"
-                                    title="Delete this flavour (admin only)"
-                                  >
-                                    [x]
-                                  </button>
-                                )}
-                              </div>
-                            </div>
-                          ))}
-                        </div>
-                        
-                        {shopEntries[0]?.notes && (
-                          <div className="text-cyan-400 mt-2">
-                            <span className="text-green-400">Notes:</span> {shopEntries[0].notes}
-                          </div>
+                      <React.Fragment key={month}>
+                        <div 
+                          className="sparkline-point"
+                          style={{ left: `${x}%`, top: `${y}%` }}
+                        ></div>
+                        {index > 0 && (
+                          <div 
+                            className="sparkline-line"
+                            style={{
+                              left: `${(index - 1) / (stats.monthlyData.length - 1) * 100}%`,
+                              width: `${100 / (stats.monthlyData.length - 1)}%`,
+                              top: `${y}%`,
+                              transform: 'translateY(-50%)'
+                            }}
+                          ></div>
                         )}
-                      </div>
+                      </React.Fragment>
                     );
                   })}
                 </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        <div className="mt-6 text-green-400">
-          <div className="flex items-center">
-            <span>GELATO BASE&gt;</span>
-            <span className="blink ml-1">█</span>
-          </div>
-        </div>
-
-        <div className="mt-6 pt-2 border-t border-cyan-700 text-sm text-gray-400">
-          <div className="flex justify-between">
-            <div>
-              {sortedDates.length > 0 ? (
-                <span>Last update: {new Date(entries[0]?.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
-              ) : (
-                <span>Database empty</span>
-              )}
-            </div>
-            <div>
-              {isLoading ? (
-                <span className="text-yellow-400">Syncing...</span>
-              ) : (
-                <span className="text-green-400">PostgreSQL Active</span>
-              )}
-            </div>
-          </div>
-        </div>
-      </div>
-    </div>
-  );
-};
-
-export default IceCreamTracker;
