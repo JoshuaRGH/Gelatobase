@@ -940,3 +940,323 @@ const IceCreamTracker = () => {
                     );
                   })}
                 </div>
+                <div className="flex justify-between text-xs text-gray-400 mt-2">
+                  <span>{stats.monthlyData[0]?.[0]}</span>
+                  <span>{stats.monthlyData[stats.monthlyData.length - 1]?.[0]}</span>
+                </div>
+              </div>
+            )}
+
+            {/* Taster Leaderboard */}
+            <div className="mb-6">
+              <div className="text-yellow-400 mb-3">TASTER LEADERBOARD:</div>
+              <div className="space-y-2">
+                {stats.personData.map(([person, count], index) => {
+                  const isChampion = index === 0;
+                  const percentage = ((count / stats.totalFlavors) * 100).toFixed(1);
+                  const favorite = stats.personFavorites.find(p => p.person === person);
+                  
+                  return (
+                    <div 
+                      key={person} 
+                      className={`flex items-center justify-between p-2 ${isChampion ? 'border border-yellow-400 bg-yellow-900/20' : 'border border-gray-700'}`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        <div className={`w-6 h-6 flex items-center justify-center ${isChampion ? 'bg-yellow-500 text-black' : 'bg-gray-700'} text-xs`}>
+                          {index + 1}
+                        </div>
+                        <span className={isChampion ? 'text-yellow-300' : 'laser-green'}>
+                          {person}
+                        </span>
+                      </div>
+                      <div className="flex items-center space-x-4">
+                        <span className="laser-blue">{count} flavors</span>
+                        <span className="text-sm text-gray-400">{percentage}%</span>
+                        {favorite && favorite.favorite !== 'None' && (
+                          <span className="text-xs text-cyan-400">
+                            Fav: {favorite.favorite}
+                          </span>
+                        )}
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Quick Stats Grid */}
+            <div className="grid grid-cols-2 gap-4 mb-6">
+              <div className="border border-cyan-700 p-3">
+                <div className="text-xs text-gray-400 mb-1">MOST REPEATED</div>
+                <div className="laser-green text-sm">
+                  {stats.mostCommonFlavor[0].charAt(0).toUpperCase() + stats.mostCommonFlavor[0].slice(1)}
+                </div>
+                <div className="text-xs laser-blue">{stats.mostCommonFlavor[1]} times</div>
+              </div>
+              
+              <div className="border border-purple-700 p-3">
+                <div className="text-xs text-gray-400 mb-1">AVG FLAVORS/VISIT</div>
+                <div className="laser-pink text-lg">{stats.avgFlavorsPerVisit}</div>
+                <div className="text-xs text-gray-400">
+                  Range: {stats.minFlavorsPerVisit}-{stats.maxFlavorsPerVisit}
+                </div>
+              </div>
+              
+              <div className="border border-green-700 p-3">
+                <div className="text-xs text-gray-400 mb-1">ACTIVITY (7D)</div>
+                <div className="laser-green text-lg">{stats.recentActivity}</div>
+                <div className="text-xs text-gray-400">
+                  {stats.recentPercentage}% of total
+                </div>
+              </div>
+              
+              <div className="border border-blue-700 p-3">
+                <div className="text-xs text-gray-400 mb-1">SHOP RATIO</div>
+                <div className="laser-blue text-lg">
+                  {stats.shopRatio !== 'N/A' ? `1:${stats.shopRatio}` : 'N/A'}
+                </div>
+                <div className="text-xs text-gray-400">
+                  Joelato : Mary's
+                </div>
+              </div>
+            </div>
+
+            {/* Time Analysis */}
+            <div className="mb-4">
+              <div className="text-yellow-400 mb-2">TIME ANALYSIS:</div>
+              <div className="text-sm space-y-1 text-green-400">
+                <div>Tracking period........: {stats.daysBetween} days</div>
+                <div>Date range.............: {stats.firstVisit} to {stats.lastVisit}</div>
+                <div>Flavors per day........: {stats.flavorsPerDay}</div>
+                <div>Unique shops visited...: {Object.keys(stats.shopCounts).length}</div>
+                <div>Unique tasters.........: {Object.keys(stats.personCounts).length}</div>
+              </div>
+            </div>
+
+            {/* Close button */}
+            <div className="mt-6 pt-4 border-t border-magenta-700 text-center">
+              <button
+                onClick={() => setShowStats(false)}
+                className="px-6 py-2 text-black bg-gradient-to-r from-cyan-500 to-blue-500 hover:from-cyan-600 hover:to-blue-600 border border-cyan-700 font-bold"
+              >
+                [CLOSE ANALYTICS]
+              </button>
+            </div>
+          </div>
+        )}
+
+        {showForm && (
+          <div className="border border-cyan-400 p-4 mb-4 bg-gray-900">
+            <div className="text-yellow-400 mb-3">
+              ═══ ADD NEW FLAVOURS ═══
+            </div>
+            
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">SHOP:</span>
+                <select
+                  value={formData.shop}
+                  onChange={(e) => setFormData({...formData, shop: e.target.value})}
+                  className="dos-select flex-1"
+                  disabled={isLoading}
+                >
+                  <option value="Joelato">JOELATO</option>
+                  <option value="Mary's Milk Bar">MARYS MILK BAR</option>
+                  <option value="Other">OTHER</option>
+                </select>
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">NAME:</span>
+                <input
+                  type="text"
+                  value={formData.person}
+                  onChange={(e) => setFormData({...formData, person: e.target.value})}
+                  className="dos-input flex-1"
+                  placeholder="YOUR NAME"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="flex items-center gap-2">
+                <span className="text-green-400 w-32">DATE:</span>
+                <input
+                  type="date"
+                  value={formData.date}
+                  onChange={(e) => setFormData({...formData, date: e.target.value})}
+                  className="dos-input"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <div className="flex items-center justify-between">
+                  <span className="text-green-400">FLAVOURS:</span>
+                  <button
+                    type="button"
+                    onClick={addFlavourField}
+                    className="text-cyan-400 hover:text-white px-2 py-1 border border-cyan-700"
+                    disabled={isLoading}
+                  >
+                    [+ ADD FLAVOUR]
+                  </button>
+                </div>
+                
+                {formData.flavours.map((flavour, index) => (
+                  <div key={index} className="flex items-center gap-2">
+                    <span className="text-cyan-400 w-8">{index + 1}.</span>
+                    <input
+                      type="text"
+                      value={flavour}
+                      onChange={(e) => updateFlavour(index, e.target.value)}
+                      className="dos-input flex-1"
+                      placeholder={`FLAVOUR ${index + 1}`}
+                      disabled={isLoading}
+                    />
+                    {formData.flavours.length > 1 && (
+                      <button
+                        type="button"
+                        onClick={() => removeFlavourField(index)}
+                        className="text-red-400 hover:text-red-300 px-2 border border-red-700"
+                        disabled={isLoading}
+                      >
+                        [X]
+                      </button>
+                    )}
+                  </div>
+                ))}
+              </div>
+
+              <div className="flex gap-2">
+                <span className="text-green-400 w-32 pt-2">NOTES:</span>
+                <textarea
+                  value={formData.notes}
+                  onChange={(e) => setFormData({...formData, notes: e.target.value})}
+                  className="dos-textarea flex-1"
+                  placeholder="OPTIONAL NOTES"
+                  disabled={isLoading}
+                />
+              </div>
+
+              <div className="flex gap-4 mt-4">
+                <button
+                  onClick={handleSubmit}
+                  className="px-6 py-2 text-black bg-green-400 hover:bg-green-500 border border-green-700 disabled:opacity-50 disabled:cursor-not-allowed"
+                  disabled={isLoading || formData.flavours.filter(f => f.trim() !== '').length === 0 || !formData.person}
+                >
+                  {isLoading ? '[S]AVING...' : '[S]AVE FLAVOURS'}
+                </button>
+                <button
+                  onClick={() => setShowForm(false)}
+                  className="px-6 py-2 text-black bg-red-400 hover:bg-red-500 border border-red-700 disabled:opacity-50"
+                  disabled={isLoading}
+                >
+                  [C]ANCEL
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        <div className="mb-4">
+          <div className="text-white mb-2">
+            RECORDED FLAVOURS
+          </div>
+          
+          {sortedDates.length === 0 ? (
+            <div className="text-red-400 ml-4">
+              No flavours recorded yet.
+              <br />
+              <br />
+              <button 
+                onClick={() => setShowForm(true)}
+                className="text-cyan-400 hover:text-white underline"
+              >
+                Click "NEW FLAVOURS" to add your first flavours
+              </button>
+            </div>
+          ) : (
+            <div className="space-y-6">
+              {sortedDates.map(date => (
+                <div key={date} className="border border-cyan-400 p-3 bg-gray-900">
+                  <div className="text-yellow-400 mb-3">
+                    {new Date(date).toLocaleDateString('en-US', { weekday: 'long', year: 'numeric', month: 'long', day: 'numeric' }).toUpperCase()}
+                  </div>
+                  
+                  {Array.from(new Set(groupedEntries[date].map(e => e.shop))).map(shop => {
+                    const shopEntries = groupedEntries[date].filter(e => e.shop === shop);
+                    const people = Array.from(new Set(shopEntries.map(e => e.person)));
+                    
+                    return (
+                      <div key={shop} className="mb-4 ml-4">
+                        <div className="text-green-400 mb-2">
+                          <span className="text-yellow-400 mr-2">{shop}</span>
+                          <span className="text-cyan-400">
+                            • tasted by {people.join(', ')}
+                          </span>
+                        </div>
+                        
+                        <div className="flex flex-wrap gap-2 mb-3">
+                          {shopEntries.map(entry => (
+                            <div key={entry.id} className="relative group">
+                              <div className="flavour-tag">
+                                {entry.flavor}
+                                {isAdmin && (
+                                  <button
+                                    onClick={() => deleteEntry(entry.id)}
+                                    className="ml-2 text-red-400 hover:text-red-300 text-xs"
+                                    title="Delete this flavour (admin only)"
+                                  >
+                                    [x]
+                                  </button>
+                                )}
+                              </div>
+                            </div>
+                          ))}
+                        </div>
+                        
+                        {shopEntries[0]?.notes && (
+                          <div className="text-cyan-400 mt-2">
+                            <span className="text-green-400">Notes:</span> {shopEntries[0].notes}
+                          </div>
+                        )}
+                      </div>
+                    );
+                  })}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        <div className="mt-6 text-green-400">
+          <div className="flex items-center">
+            <span>GELATO BASE&gt;</span>
+            <span className="blink ml-1">█</span>
+          </div>
+        </div>
+
+        <div className="mt-6 pt-2 border-t border-cyan-700 text-sm text-gray-400">
+          <div className="flex justify-between">
+            <div>
+              {sortedDates.length > 0 ? (
+                <span>Last update: {new Date(entries[0]?.timestamp).toLocaleTimeString([], {hour: '2-digit', minute:'2-digit'})}</span>
+              ) : (
+                <span>Database empty</span>
+              )}
+            </div>
+            <div>
+              {isLoading ? (
+                <span className="text-yellow-400">Syncing...</span>
+              ) : (
+                <span className="text-green-400">PostgreSQL Active</span>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
+export default IceCreamTracker;
