@@ -17,6 +17,7 @@ const IceCreamTracker = () => {
   const [isAdmin, setIsAdmin] = useState(false);
   const [showAdminPrompt, setShowAdminPrompt] = useState(false);
   const [adminPassword, setAdminPassword] = useState('');
+  const [showStats, setShowStats] = useState(false);
 
   useEffect(() => {
     loadEntries();
@@ -284,6 +285,83 @@ const IceCreamTracker = () => {
   const today = new Date().toISOString().split('T')[0];
   const todaysEntries = entries.filter(e => e.date === today).length;
 
+  // Calculate statistics
+  const calculateStats = () => {
+    if (entries.length === 0) return null;
+
+    // Shop breakdown
+    const shopCounts = entries.reduce((acc, entry) => {
+      acc[entry.shop] = (acc[entry.shop] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Person breakdown
+    const personCounts = entries.reduce((acc, entry) => {
+      acc[entry.person] = (acc[entry.person] || 0) + 1;
+      return acc;
+    }, {});
+
+    // Most popular shop
+    const mostPopularShop = Object.entries(shopCounts).sort((a, b) => b[1] - a[1])[0];
+
+    // Most active taster
+    const mostActiveTaster = Object.entries(personCounts).sort((a, b) => b[1] - a[1])[0];
+
+    // Flavours per visit (entries grouped by date and person)
+    const visitsMap = entries.reduce((acc, entry) => {
+      const key = `${entry.date}-${entry.person}`;
+      acc[key] = (acc[key] || 0) + 1;
+      return acc;
+    }, {});
+    const flavoursPerVisit = Object.values(visitsMap);
+    const avgFlavoursPerVisit = (flavoursPerVisit.reduce((a, b) => a + b, 0) / flavoursPerVisit.length).toFixed(1);
+    const maxFlavoursPerVisit = Math.max(...flavoursPerVisit);
+    const minFlavoursPerVisit = Math.min(...flavoursPerVisit);
+
+    // Calculate median
+    const sortedFlavours = [...flavoursPerVisit].sort((a, b) => a - b);
+    const median = sortedFlavours.length % 2 === 0
+      ? (sortedFlavours[sortedFlavours.length / 2 - 1] + sortedFlavours[sortedFlavours.length / 2]) / 2
+      : sortedFlavours[Math.floor(sortedFlavours.length / 2)];
+
+    // Date range
+    const dates = entries.map(e => new Date(e.date)).sort((a, b) => a - b);
+    const firstVisit = dates[0];
+    const lastVisit = dates[dates.length - 1];
+    const daysBetween = Math.floor((lastVisit - firstVisit) / (1000 * 60 * 60 * 24));
+
+    // Unique flavours
+    const uniqueFlavours = new Set(entries.map(e => e.flavor.toLowerCase().trim())).size;
+
+    // Most common flavour
+    const flavourCounts = entries.reduce((acc, entry) => {
+      const flavour = entry.flavor.toLowerCase().trim();
+      acc[flavour] = (acc[flavour] || 0) + 1;
+      return acc;
+    }, {});
+    const mostCommonFlavour = Object.entries(flavourCounts).sort((a, b) => b[1] - a[1])[0];
+
+    return {
+      totalFlavours: entries.length,
+      uniqueFlavours,
+      totalVisits: Object.keys(visitsMap).length,
+      shopCounts,
+      personCounts,
+      mostPopularShop,
+      mostActiveTaster,
+      avgFlavoursPerVisit,
+      maxFlavoursPerVisit,
+      minFlavoursPerVisit,
+      medianFlavoursPerVisit: median,
+      firstVisit: firstVisit.toLocaleDateString(),
+      lastVisit: lastVisit.toLocaleDateString(),
+      daysBetween,
+      mostCommonFlavour
+    };
+  };
+
+  const stats = calculateStats();
+
   return (
     <div className="min-h-screen bg-black text-cyan-400 p-0 m-0" style={{fontFamily: "'Courier New', monospace", fontSize: '16px', lineHeight: '1.2'}}>
       <style>{`
@@ -490,11 +568,11 @@ const IceCreamTracker = () => {
               [M]ARYS
             </button>
             <button
-              onClick={loadEntries}
-              className="px-3 py-1 text-green-400 hover:text-white hover:bg-green-900 border border-green-700"
+              onClick={() => setShowStats(!showStats)}
+              className={`px-3 py-1 ${showStats ? 'bg-magenta-400 text-black' : 'text-magenta-400 hover:text-white hover:bg-magenta-900'} border border-magenta-700`}
               disabled={isLoading}
             >
-              [R]EFRESH
+              [#]NUMBER CRUNCH
             </button>
             {isAdmin ? (
               <button
@@ -513,6 +591,88 @@ const IceCreamTracker = () => {
             )}
           </div>
         </div>
+
+        {/* Statistics Panel */}
+        {showStats && stats && (
+          <div className="border border-magenta-400 p-4 mb-4 bg-gray-900">
+            <div className="text-magenta-400 mb-3">
+              ═══ NUMBER CRUNCH: STATISTICAL ANALYSIS ═══
+            </div>
+            
+            <div className="space-y-4 text-sm">
+              {/* Overview */}
+              <div>
+                <div className="text-yellow-400 mb-2">OVERVIEW:</div>
+                <div className="ml-4 space-y-1 text-green-400">
+                  <div>Total flavours tasted......: {stats.totalFlavours}</div>
+                  <div>Unique flavours............: {stats.uniqueFlavours}</div>
+                  <div>Total visits...............: {stats.totalVisits}</div>
+                  <div>Date range.................: {stats.firstVisit} to {stats.lastVisit}</div>
+                  <div>Days tracked...............: {stats.daysBetween} days</div>
+                  <div>Avg flavours per day.......: {(stats.totalFlavours / (stats.daysBetween || 1)).toFixed(2)}</div>
+                </div>
+              </div>
+
+              {/* Flavours per visit stats */}
+              <div>
+                <div className="text-yellow-400 mb-2">FLAVOURS PER VISIT:</div>
+                <div className="ml-4 space-y-1 text-green-400">
+                  <div>Average....................: {stats.avgFlavoursPerVisit} flavours</div>
+                  <div>Median.....................: {stats.medianFlavoursPerVisit} flavours</div>
+                  <div>Maximum....................: {stats.maxFlavoursPerVisit} flavours</div>
+                  <div>Minimum....................: {stats.minFlavoursPerVisit} flavours</div>
+                </div>
+              </div>
+
+              {/* Shop breakdown */}
+              <div>
+                <div className="text-yellow-400 mb-2">SHOP BREAKDOWN:</div>
+                <div className="ml-4 space-y-1 text-green-400">
+                  {Object.entries(stats.shopCounts).map(([shop, count]) => (
+                    <div key={shop}>
+                      {shop}...: {count} flavours ({((count / stats.totalFlavours) * 100).toFixed(1)}%)
+                      {shop === stats.mostPopularShop[0] && <span className="text-cyan-400"> ← MOST VISITED</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Person breakdown */}
+              <div>
+                <div className="text-yellow-400 mb-2">TASTER BREAKDOWN:</div>
+                <div className="ml-4 space-y-1 text-green-400">
+                  {Object.entries(stats.personCounts).map(([person, count]) => (
+                    <div key={person}>
+                      {person}...: {count} flavours ({((count / stats.totalFlavours) * 100).toFixed(1)}%)
+                      {person === stats.mostActiveTaster[0] && <span className="text-cyan-400"> ← MOST ACTIVE</span>}
+                    </div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Most common flavour */}
+              {stats.mostCommonFlavour[1] > 1 && (
+                <div>
+                  <div className="text-yellow-400 mb-2">REPEAT FLAVOURS:</div>
+                  <div className="ml-4 space-y-1 text-green-400">
+                    <div>
+                      Most repeated..............: {stats.mostCommonFlavour[0]} ({stats.mostCommonFlavour[1]} times)
+                    </div>
+                  </div>
+                </div>
+              )}
+            </div>
+
+            <div className="mt-4 pt-3 border-t border-magenta-700">
+              <button
+                onClick={() => setShowStats(false)}
+                className="px-4 py-1 text-black bg-magenta-400 hover:bg-magenta-500 border border-magenta-700"
+              >
+                [CLOSE STATS]
+              </button>
+            </div>
+          </div>
+        )}
 
         {showForm && (
           <div className="border border-cyan-400 p-4 mb-4 bg-gray-900">
