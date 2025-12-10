@@ -40,8 +40,8 @@ const IceCreamTracker = () => {
       setError('Could not connect to database. Using mock data.');
       
       const mockData = [
-        { id: 1, flavor: "Chocolate", shop: "Joelato", person: "Demo", date: "2024-01-15", timestamp: new Date().toISOString(), notes: "Sample entry" },
-        { id: 2, flavor: "Vanilla", shop: "Mary's Milk Bar", person: "Demo", date: "2024-01-14", timestamp: new Date().toISOString(), notes: "Another sample" }
+        { id: 1, flavour: "Chocolate", shop: "Joelato", person: "Demo", date: "2024-01-15", timestamp: new Date().toISOString(), notes: "Sample entry" },
+        { id: 2, flavour: "Vanilla", shop: "Mary's Milk Bar", person: "Demo", date: "2024-01-14", timestamp: new Date().toISOString(), notes: "Another sample" }
       ];
       setEntries(mockData);
       
@@ -135,7 +135,7 @@ const IceCreamTracker = () => {
       for (const flavour of nonEmptyFlavours) {
         const entryToSave = {
           shop: formData.shop,
-          flavor: flavour.trim(),
+          flavour: flavour.trim(),
           date: formData.date,
           notes: formData.notes,
           person: formData.person
@@ -183,7 +183,7 @@ const IceCreamTracker = () => {
       
       const localEntries = nonEmptyFlavours.map((flavour, index) => ({
         shop: formData.shop,
-        flavor: flavour.trim(),
+        flavour: flavour.trim(),
         date: formData.date,
         notes: formData.notes,
         person: formData.person,
@@ -301,15 +301,15 @@ const IceCreamTracker = () => {
       return acc;
     }, {});
 
-    // Flavor analysis
-    const flavorCounts = entries.reduce((acc, entry) => {
-      const flavor = entry.flavor.toLowerCase().trim();
-      acc[flavor] = (acc[flavor] || 0) + 1;
+    // Flavour analysis
+    const flavourCounts = entries.reduce((acc, entry) => {
+      const flavour = entry.flavour.toLowerCase().trim();
+      acc[flavour] = (acc[flavour] || 0) + 1;
       return acc;
     }, {});
 
     // Get top 10 flavours
-    const topFlavours = Object.entries(flavorCounts)
+    const topFlavours = Object.entries(flavourCounts)
       .sort((a, b) => b[1] - a[1])
       .slice(0, 10);
 
@@ -343,7 +343,7 @@ const IceCreamTracker = () => {
     const marysCount = shopCounts["Mary's Milk Bar"] || 0;
     const shopRatio = joelatoCount > 0 ? (marysCount / joelatoCount).toFixed(2) : 'N/A';
 
-    // Flavor variety by shop
+    // Flavour variety by shop
     const flavoursByShop = entries.reduce((acc, entry) => {
       if (!acc[entry.shop]) acc[entry.shop] = new Set();
       acc[entry.shop].add(entry.flavour.toLowerCase().trim());
@@ -372,7 +372,7 @@ const IceCreamTracker = () => {
       return acc;
     }, {});
 
-    // Find each person's favorite flavor
+    // Find each person's favorite flavour
     const personFavorites = Object.entries(personFlavours).map(([person, flavours]) => {
       const favorite = Object.entries(flavours).sort((a, b) => b[1] - a[1])[0];
       return { person, favorite: favorite ? favorite[0] : 'None', count: favorite ? favorite[1] : 0 };
@@ -881,15 +881,15 @@ const IceCreamTracker = () => {
             <div className="mb-6">
               <div className="text-yellow-400 mb-3">TOP FLAVOURS:</div>
               <div className="grid grid-cols-2 gap-4">
-                {stats.topFlavours.slice(0, 8).map(([flavor, count], index) => {
+                {stats.topFlavours.slice(0, 8).map(([flavour, count], index) => {
                   const percentage = ((count / stats.totalFlavours) * 100).toFixed(1);
                   const width = Math.min(100, percentage * 2);
                   
                   return (
-                    <div key={flavor} className="space-y-1">
+                    <div key={flavour} className="space-y-1">
                       <div className="flex justify-between text-sm">
                         <span className="laser-green truncate max-w-[120px]">
-                          {flavor.charAt(0).toUpperCase() + flavor.slice(1)}
+                          {flavour.charAt(0).toUpperCase() + flavour.slice(1)}
                         </span>
                         <span className="laser-blue">{count}</span>
                       </div>
@@ -989,9 +989,9 @@ const IceCreamTracker = () => {
               <div className="border border-cyan-700 p-3">
                 <div className="text-xs text-gray-400 mb-1">MOST REPEATED</div>
                 <div className="laser-green text-sm">
-                  {stats.mostCommonFlavor[0].charAt(0).toUpperCase() + stats.mostCommonFlavor[0].slice(1)}
+                  {stats.mostCommonFlavour[0].charAt(0).toUpperCase() + stats.mostCommonFlavour[0].slice(1)}
                 </div>
-                <div className="text-xs laser-blue">{stats.mostCommonFlavor[1]} times</div>
+                <div className="text-xs laser-blue">{stats.mostCommonFlavour[1]} times</div>
               </div>
               
               <div className="border border-purple-700 p-3">
@@ -1200,7 +1200,7 @@ const IceCreamTracker = () => {
                           {shopEntries.map(entry => (
                             <div key={entry.id} className="relative group">
                               <div className="flavour-tag">
-                                {entry.flavor}
+                                {entry.flavour}
                                 {isAdmin && (
                                   <button
                                     onClick={() => deleteEntry(entry.id)}
